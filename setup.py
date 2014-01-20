@@ -13,6 +13,7 @@ tests_require = []
 
 install_requires = [
     'Django>=1.5.1,<1.6',
+    'rvbd-portal-profiler-devices>=0.0.1',
     # flyscript-portal should be here too
 ]
 

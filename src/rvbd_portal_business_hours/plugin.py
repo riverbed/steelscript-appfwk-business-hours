@@ -17,5 +17,5 @@ class BusinessHoursPlugin(Plugin):
     enabled = True
     can_disable = True
 
-    reports = ['reports.business_hours_report']
+    reports = ['reports']
     libraries = ['libs']
