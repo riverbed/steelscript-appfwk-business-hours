@@ -11,8 +11,9 @@ from django import forms
 from rvbd.common.timeutils import datetime_to_seconds, timedelta_total_seconds
 
 from rvbd_portal.apps.datasource.models import Job, Table, Column, TableField, BatchJobRunner
-from rvbd_portal.apps.datasource.modules.analysis import AnalysisTable, AnalysisException
 from rvbd_portal.apps.datasource.forms import fields_add_time_selection
+from rvbd_portal.apps.datasource.modules import analysis
+from rvbd_portal.apps.datasource.modules.analysis import AnalysisException
 
 
 logger = logging.getLogger(__name__)
@@ -68,19 +69,19 @@ def timestable():
     try:
         table = Table.objects.get(name=name)
     except ObjectDoesNotExist:
-        table = AnalysisTable.create(name, tables={}, func=compute_times)
-        Column.create(table, 'starttime', 'Start time', datatype='time', iskey=True, issortcol=True)
-        Column.create(table, 'endtime',   'End time', datatype='time', iskey=True)
-        Column.create(table, 'totalsecs', 'Total secs')
+        table = analysis.create_table(name, tables={}, func=compute_times)
+        analysis.column(table, 'starttime', 'Start time', datatype='time', iskey=True, issortcol=True)
+        analysis.column(table, 'endtime',   'End time', datatype='time', iskey=True)
+        analysis.column(table, 'totalsecs', 'Total secs')
     return table
 
 
 def create(name, basetable, aggregate, other_tables=None, **kwargs):
-    table = AnalysisTable.create(name, tables={'times': timestable().id},
-                                 func=report_business_hours,
-                                 params={'table': basetable.id,
-                                         'aggregate': aggregate},
-                                 **kwargs)
+    table = analysis.create_table(name, tables={'times': timestable().id},
+                                  func=report_business_hours,
+                                  params={'table': basetable.id,
+                                          'aggregate': aggregate},
+                                  **kwargs)
 
     table.copy_columns(basetable)
     [table.fields.add(f) for f in basetable.fields.all()]

@@ -6,14 +6,13 @@
 #   https://github.com/riverbed/flyscript-portal/blob/master/LICENSE ("License").
 # This software is distributed "AS IS" as set forth in the License.
 
-from rvbd_portal.apps.datasource.models import Column
 from rvbd_portal.apps.report.models import Report, Section
 import rvbd_portal.apps.report.modules.yui3 as yui3
-from rvbd_portal.apps.datasource.modules.analysis import AnalysisTable
+from rvbd_portal.apps.datasource.modules import analysis
 import rvbd_portal.libs.profiler_tools as protools
 
-from rvbd_portal_profiler.datasources.profiler import GroupByTable
-from rvbd_portal_profiler.datasources.profiler_devices import DevicesTable
+from rvbd_portal_profiler.datasources import profiler
+from rvbd_portal_profiler.datasources import profiler_devices
 
 import rvbd_portal_business_hours.libs.business_hours as bizhours
 
@@ -31,20 +30,26 @@ bizhours.fields_add_business_hour_fields(section)
 #
 # Define by-interface table from Profiler
 #
-basetable = GroupByTable.create('bh-basetable', 'interface', duration=60,
-                                resolution=3600, interface=True)
+basetable = profiler.create_groupby_table('bh-basetable', 'interface',
+                                          duration=60,
+                                          resolution=3600, interface=True)
 
 # Define all of your columns here associated with basetable
 # For each data column (iskey=False), you must specify the aggreation method
 # in the bizhours.create below.
-Column.create(basetable, 'interface_dns', 'Interface', iskey=True, isnumeric=False)
-Column.create(basetable, 'interface_alias', 'Ifalias', iskey=True, isnumeric=False)
-Column.create(basetable, 'avg_util', '% Utilization', datatype='pct', issortcol=True)
-Column.create(basetable, 'in_avg_util', '% Utilization In', datatype='pct', issortcol=False)
-Column.create(basetable, 'out_avg_util', '% Utilization Out', datatype='pct', issortcol=False)
+profiler.column(basetable, 'interface_dns', 'Interface', iskey=True,
+                isnumeric=False)
+profiler.column(basetable, 'interface_alias', 'Ifalias', iskey=True,
+                isnumeric=False)
+profiler.column(basetable, 'avg_util', '% Utilization', datatype='pct',
+                issortcol=True)
+profiler.column(basetable, 'in_avg_util', '% Utilization In', datatype='pct',
+                issortcol=False)
+profiler.column(basetable, 'out_avg_util', '% Utilization Out', datatype='pct',
+                issortcol=False)
 
-# The 'aggregate' parameter describes how similar rows on different business days
-# should be combined.  For example:
+# The 'aggregate' parameter describes how similar rows on different business
+# days should be combined.  For example:
 #
 #     Day    Total Bytes   Avg Bytes/s
 # ---------  ------------  -----------
@@ -56,7 +61,7 @@ Column.create(basetable, 'out_avg_util', '% Utilization Out', datatype='pct', is
 #
 # Common methods:
 #   sum    - just add up all the data, typical for totals
-#   avg    - compute the average (using time as a weight), for anything "average"
+#   avg    - compute average (using time as a weight), for anything "average"
 #   min    - minimum of all values
 #   max    - maximum of all values
 #
@@ -67,20 +72,23 @@ bustable_pre = bizhours.create('bh-bustable-pre', basetable,
 
 # Device Table
 
-devtable = DevicesTable.create('devtable')
-Column.create(devtable, 'ipaddr', 'Device IP', iskey=True, isnumeric=False)
-Column.create(devtable, 'name', 'Device Name', isnumeric=False)
-Column.create(devtable, 'type', 'Flow Type', isnumeric=False)
-Column.create(devtable, 'version', 'Flow Version', isnumeric=False)
+devtable = profiler_devices.create_table('devtable')
+profiler_devices.column(devtable, 'ipaddr', 'Device IP', iskey=True,
+                        isnumeric=False)
+profiler_devices.column(devtable, 'name', 'Device Name', isnumeric=False)
+profiler_devices.column(devtable, 'type', 'Flow Type', isnumeric=False)
+profiler_devices.column(devtable, 'version', 'Flow Version', isnumeric=False)
 
-bustable = AnalysisTable.create('bh-bustable', tables={'devices': devtable.id,
-                                                       'traffic': bustable_pre.id},
-                                func=protools.process_join_ip_device)
+bustable = analysis.create_table('bh-bustable', tables={'devices': devtable.id,
+                                                        'traffic': bustable_pre.id},
+                                 func=protools.process_join_ip_device)
 
-Column.create(bustable, 'interface_name', 'Interface', iskey=True, isnumeric=False)
+analysis.column(bustable, 'interface_name', 'Interface', iskey=True,
+                isnumeric=False)
 bustable.copy_columns(bustable_pre, except_columns=['interface_dns'])
 
 yui3.TableWidget.create(section, bustable, "Interface", height=600)
 yui3.BarWidget.create(section, bustable, "Interface Utilization", height=600,
                       keycols=['interface_name'], valuecols=['avg_util'])
-yui3.TableWidget.create(section, bizhours.timestable(), "Covered times", width=12, height=200)
+yui3.TableWidget.create(section, bizhours.timestable(), "Covered times",
+                        width=12, height=200)
