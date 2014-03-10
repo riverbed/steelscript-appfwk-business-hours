@@ -10,10 +10,12 @@ from django import forms
 
 from rvbd.common.timeutils import datetime_to_seconds, timedelta_total_seconds
 
-from rvbd_portal.apps.datasource.models import Job, Table, Column, TableField, BatchJobRunner
+from rvbd_portal.apps.datasource.models import (Job, Table, Column, TableField,
+                                                BatchJobRunner)
 from rvbd_portal.apps.datasource.forms import fields_add_time_selection
 from rvbd_portal.apps.datasource.modules import analysis
-from rvbd_portal.apps.datasource.modules.analysis import AnalysisException
+from rvbd_portal.apps.datasource.modules.analysis import AnalysisException, \
+    AnalysisTable
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,8 @@ def fields_add_business_hour_fields(report,
     TIMES.extend(['%d:00pm' % h for h in range(1, 13)])
 
     business_hours_start = TableField(keyword='business_hours_start',
-                                      label='Start Business', initial=default_start,
+                                      label='Start Business',
+                                      initial=default_start,
                                       field_cls=forms.ChoiceField,
                                       field_kwargs={'choices': zip(TIMES, TIMES)},
                                       required=True)
@@ -47,7 +50,8 @@ def fields_add_business_hour_fields(report,
     report.fields.add(business_hours_end)
 
     business_hours_tzname = TableField(keyword='business_hours_tzname',
-                                       label='Business Timezone', initial=default_timezone,
+                                       label='Business Timezone',
+                                       initial=default_timezone,
                                        field_cls=forms.ChoiceField,
                                        field_kwargs={'choices': zip(pytz.common_timezones,
                                                                     pytz.common_timezones)},
@@ -69,24 +73,26 @@ def timestable():
     try:
         table = Table.objects.get(name=name)
     except ObjectDoesNotExist:
-        table = analysis.create_table(name, tables={}, func=compute_times)
-        analysis.column(table, 'starttime', 'Start time', datatype='time', iskey=True, issortcol=True)
-        analysis.column(table, 'endtime',   'End time', datatype='time', iskey=True)
-        analysis.column(table, 'totalsecs', 'Total secs')
+        a = AnalysisTable(name, tables={}, func=compute_times)
+        a.add_column('starttime', 'Start time', datatype='time', iskey=True,
+                     issortcol=True)
+        a.add_column('endtime',   'End time', datatype='time', iskey=True)
+        a.add_column('totalsecs', 'Total secs')
+        table = a.table
     return table
 
 
 def create(name, basetable, aggregate, other_tables=None, **kwargs):
-    table = analysis.create_table(name, tables={'times': timestable().id},
-                                  func=report_business_hours,
-                                  params={'table': basetable.id,
-                                          'aggregate': aggregate},
-                                  **kwargs)
+    a = AnalysisTable(name, tables={'times': timestable().id},
+                      func=report_business_hours,
+                      params={'table': basetable.id,
+                              'aggregate': aggregate},
+                      **kwargs)
 
-    table.copy_columns(basetable)
-    [table.fields.add(f) for f in basetable.fields.all()]
+    a.table.copy_columns(basetable)
+    [a.table.fields.add(f) for f in basetable.fields.all()]
 
-    return table
+    return a.table
 
 
 def parse_time(t_str):
@@ -167,7 +173,8 @@ def compute_times(target, tables, criteria, params):
     if len(times) == 0:
         return None
     else:
-        return pandas.DataFrame(times, columns=['starttime', 'endtime', 'totalsecs'])
+        return pandas.DataFrame(times,
+                                columns=['starttime', 'endtime', 'totalsecs'])
 
 
 def report_business_hours(query, tables, criteria, params):
