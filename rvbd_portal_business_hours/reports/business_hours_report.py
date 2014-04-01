@@ -41,14 +41,14 @@ basetable = ProfilerGroupbyTable('bh-basetable', groupby='interface',
 # For each data column (iskey=False), you must specify the aggregation method
 # in the bizhours.create below.
 basetable.add_column('interface_dns', 'Interface', iskey=True,
-                     isnumeric=False)
+                     datatype="string")
 basetable.add_column('interface_alias', 'Ifalias', iskey=True,
-                     isnumeric=False)
-basetable.add_column('avg_util', '% Utilization', datatype='pct',
+                     datatype="string")
+basetable.add_column('avg_util', '% Utilization', units='pct',
                      issortcol=True)
-basetable.add_column('in_avg_util', '% Utilization In', datatype='pct',
+basetable.add_column('in_avg_util', '% Utilization In', units='pct',
                      issortcol=False)
-basetable.add_column('out_avg_util', '% Utilization Out', datatype='pct',
+basetable.add_column('out_avg_util', '% Utilization Out', units='pct',
                      issortcol=False)
 
 # The 'aggregate' parameter describes how similar rows on different business
@@ -77,17 +77,17 @@ biztable = bizhours.create('bh-biztable', basetable.table,
 
 devtable = ProfilerDeviceTable('devtable')
 devtable.add_column('ipaddr', 'Device IP', iskey=True,
-                    isnumeric=False)
-devtable.add_column('name', 'Device Name', isnumeric=False)
-devtable.add_column('type', 'Flow Type', isnumeric=False)
-devtable.add_column('version', 'Flow Version', isnumeric=False)
+                    datatype="string")
+devtable.add_column('name', 'Device Name', datatype="string")
+devtable.add_column('type', 'Flow Type', datatype="string")
+devtable.add_column('version', 'Flow Version', datatype="string")
 
 interfaces = AnalysisTable('bh-interfaces', tables={'devices': devtable,
                                                     'traffic': biztable},
                            function=protools.process_join_ip_device)
 
 interfaces.add_column('interface_name', 'Interface', iskey=True,
-                      isnumeric=False)
+                      datatype="string")
 interfaces.table.copy_columns(biztable, except_columns=['interface_dns'])
 
 yui3.TableWidget.create(section, interfaces.table, "Interface", height=600)
