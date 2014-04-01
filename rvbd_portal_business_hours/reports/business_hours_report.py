@@ -29,8 +29,6 @@ report.save()
 
 section = Section.create(report)
 
-bizhours.fields_add_business_hour_fields(section)
-
 #
 # Define by-interface table from Profiler
 #
@@ -69,10 +67,10 @@ basetable.add_column('out_avg_util', '% Utilization Out', datatype='pct',
 #   min    - minimum of all values
 #   max    - maximum of all values
 #
-bustable_pre = bizhours.create('bh-bustable-pre', basetable.table,
-                               aggregate={'avg_util': 'avg',
-                                          'in_avg_util': 'avg',
-                                          'out_avg_util': 'avg'})
+biztable = bizhours.create('bh-biztable', basetable.table,
+                           aggregate={'avg_util': 'avg',
+                                      'in_avg_util': 'avg',
+                                      'out_avg_util': 'avg'})
 
 # Device Table
 
@@ -83,17 +81,17 @@ devtable.add_column('name', 'Device Name', isnumeric=False)
 devtable.add_column('type', 'Flow Type', isnumeric=False)
 devtable.add_column('version', 'Flow Version', isnumeric=False)
 
-bustable = AnalysisTable('bh-bustable', tables={'devices': devtable,
-                                                'traffic': bustable_pre},
-                         func=protools.process_join_ip_device)
+interfaces = AnalysisTable('bh-interfaces', tables={'devices': devtable,
+                                                    'traffic': biztable},
+                           func=protools.process_join_ip_device)
 
-bustable.add_column('interface_name', 'Interface', iskey=True,
-                    isnumeric=False)
-bustable.table.copy_columns(bustable_pre, except_columns=['interface_dns'])
+interfaces.add_column('interface_name', 'Interface', iskey=True,
+                      isnumeric=False)
+interfaces.table.copy_columns(biztable, except_columns=['interface_dns'])
 
-yui3.TableWidget.create(section, bustable.table, "Interface", height=600)
-yui3.BarWidget.create(section, bustable.table, "Interface Utilization",
-                      height=600,
+yui3.TableWidget.create(section, interfaces.table, "Interface", height=600)
+yui3.BarWidget.create(section, interfaces.table, "Interface Utilization", height=600,
                       keycols=['interface_name'], valuecols=['avg_util'])
-yui3.TableWidget.create(section, bizhours.timestable(), "Covered times",
+
+yui3.TableWidget.create(section, bizhours.get_timestable(biztable), "Covered times",
                         width=12, height=200)

@@ -21,13 +21,13 @@ from rvbd_portal.apps.datasource.modules.analysis import AnalysisException, \
 logger = logging.getLogger(__name__)
 
 
-def fields_add_business_hour_fields(report,
+def fields_add_business_hour_fields(obj,
                                     default_start='8:00am',
                                     default_end='5:00pm',
                                     default_timezone='US/Eastern',
                                     default_weekends=False):
 
-    fields_add_time_selection(report, initial_duration="1 week")
+    fields_add_time_selection(obj, initial_duration="1 week")
 
     TIMES = ['%d:00am' % h for h in range(1, 13)]
     TIMES.extend(['%d:00pm' % h for h in range(1, 13)])
@@ -39,7 +39,7 @@ def fields_add_business_hour_fields(report,
                                       field_kwargs={'choices': zip(TIMES, TIMES)},
                                       required=True)
     business_hours_start.save()
-    report.fields.add(business_hours_start)
+    obj.fields.add(business_hours_start)
 
     business_hours_end = TableField(keyword='business_hours_end',
                                     label='End Business', initial=default_end,
@@ -47,7 +47,7 @@ def fields_add_business_hour_fields(report,
                                     field_kwargs={'choices': zip(TIMES, TIMES)},
                                     required=True)
     business_hours_end.save()
-    report.fields.add(business_hours_end)
+    obj.fields.add(business_hours_end)
 
     business_hours_tzname = TableField(keyword='business_hours_tzname',
                                        label='Business Timezone',
@@ -57,7 +57,7 @@ def fields_add_business_hour_fields(report,
                                                                     pytz.common_timezones)},
                                        required=True)
     business_hours_tzname.save()
-    report.fields.add(business_hours_tzname)
+    obj.fields.add(business_hours_tzname)
 
     business_hours_weekends = TableField(keyword='business_hours_weekends',
                                          field_cls=forms.BooleanField,
@@ -65,35 +65,32 @@ def fields_add_business_hour_fields(report,
                                          initial=default_weekends,
                                          required=False)
     business_hours_weekends.save()
-    report.fields.add(business_hours_weekends)
+    obj.fields.add(business_hours_weekends)
 
 
-def timestable():
-    name = 'business_hours.timestable'
-    try:
-        table = Table.objects.get(name=name)
-    except ObjectDoesNotExist:
-        a = AnalysisTable(name, tables={}, func=compute_times)
-        a.add_column('starttime', 'Start time', datatype='time', iskey=True,
-                     issortcol=True)
-        a.add_column('endtime',   'End time', datatype='time', iskey=True)
-        a.add_column('totalsecs', 'Total secs')
-        table = a.table
-    return table
+def get_timestable(biztable):
+    return biztable.options['tables']['times']
 
 
-def create(name, basetable, aggregate, other_tables=None, **kwargs):
-    a = AnalysisTable(name, tables={'times': timestable().id},
-                      func=report_business_hours,
-                      params={'table': basetable.id,
-                              'aggregate': aggregate},
-                      **kwargs)
-
-    a.table.copy_columns(basetable)
-    [a.table.fields.add(f) for f in basetable.fields.all()]
-
+def timestable(name):
+    a = AnalysisTable(name, tables={}, func=compute_times)
+    a.add_column('starttime', 'Start time', datatype='time',
+                 iskey=True, issortcol=True)
+    a.add_column('endtime',   'End time', datatype='time', iskey=True)
+    a.add_column('totalsecs', 'Total secs')
+    fields_add_business_hour_fields(a.table)
     return a.table
 
+def create(name, basetable, aggregate, **kwargs):
+    a = AnalysisTable( name,
+                       tables={'times': timestable(name + '-times').id},
+                       related_tables={'basetable': basetable.id},
+                       func=report_business_hours,
+                       params={'aggregate': aggregate},
+                       **kwargs)
+
+    a.table.copy_columns(basetable)
+    return a.table
 
 def parse_time(t_str):
     m = re.match("^([0-9]+):([0-9][0-9]) *([aApP][mM]?)?$", t_str)
@@ -115,15 +112,15 @@ def replace_time(dt, t):
                       microsecond=0)
 
 
-def compute_times(target, tables, criteria, params):
+def compute_times(query, tables, criteria, params):
     tzname = criteria.business_hours_tzname
-    logger.debug("timezone: %s" % tzname)
+    logger.debug("%s: timezone: %s" % (query.job, tzname))
     tz = pytz.timezone(tzname)
 
     # Convert to datetime objects in the requested timezone
     st = criteria.starttime.astimezone(tz)
     et = criteria.endtime.astimezone(tz)
-    logger.debug("times: %s - %s" % (st, et))
+    logger.debug("%s: times: %s - %s" % (query.job, st, et))
 
     # Business hours start/end, as string "HH:MMam" like 8:00am
     sb = parse_time(criteria.business_hours_start)
@@ -136,39 +133,37 @@ def compute_times(target, tables, criteria, params):
     t = st
     while t <= et:
         # Set t0/t1 to date of t but time of sb/eb
-        t0_t = replace_time(t, sb)
-        t1_t = replace_time(t, eb)
+        t0 = replace_time(t, sb)
+        t1 = replace_time(t, eb)
 
         # Advance t by 1 day
         t = t + datetime.timedelta(days=1)
 
         # Skip weekends
-        if not weekends and t0_t.weekday() >= 5:
+        if not weekends and t0.weekday() >= 5:
             continue
 
         # Now see if we have any overlap of busines hours for today
-        if et < t0_t:
+        if et < t0:
             # Report end time is today before busines hours start, all done
             break
 
-        if et < t1_t:
+        if et < t1:
             # Report end time is today in the middle of busines hours, adjust
-            t1_t = et
+            t1 = et
 
-        if t1_t < st:
+        if t1 < st:
             # Report start time occurs today *after* business end, nothing today
             continue
 
-        if t0_t < st:
+        if t0 < st:
             # Report start time occurs today in the middle of the business hours
             # Adjust t0
-            t0_t = st
+            t0 = st
 
-        t0 = datetime_to_seconds(t0_t)
-        t1 = datetime_to_seconds(t1_t)
-
-        #logger.debug("  START: %s  END: %s" % (str(t0_t), str(t1_t)))
-        times.append([t0*1000, t1*1000, t1-t0])
+        logger.debug("%s: start: %s, end: %s, duration: %s" %
+                     (query.job, str(t0), str(t1), str(timedelta_total_seconds(t1-t0))))
+        times.append((t0, t1, timedelta_total_seconds(t1-t0)))
 
     if len(times) == 0:
         return None
@@ -183,18 +178,17 @@ def report_business_hours(query, tables, criteria, params):
     if times is None or len(times) == 0:
         return None
 
-    deptable = Table.objects.get(id=params['table'])
+    basetable = Table.objects.get(id=query.table.options['related_tables']['basetable'])
 
     # Create all the jobs
     batch = BatchJobRunner(query)
     for i, row in times.iterrows():
-        t0 = row['starttime']/1000
-        t1 = row['endtime']/1000
+        (t0,t1) = (row['starttime'], row['endtime'])
         sub_criteria = copy.copy(criteria)
-        sub_criteria.starttime = datetime.datetime.utcfromtimestamp(t0).replace(tzinfo=pytz.utc)
-        sub_criteria.endtime = datetime.datetime.utcfromtimestamp(t1).replace(tzinfo=pytz.utc)
+        sub_criteria.starttime = t0
+        sub_criteria.endtime = t1
 
-        job = Job.create(table=deptable, criteria=sub_criteria)
+        job = Job.create(table=basetable, criteria=sub_criteria)
         logger.debug("Created %s: %s - %s" % (job, t0, t1))
         batch.add_job(job)
 
@@ -234,10 +228,10 @@ def report_business_hours(query, tables, criteria, params):
     if df is None:
         return None
 
-    keynames = [key.name for key in deptable.get_columns(iskey=True)]
+    keynames = [key.name for key in basetable.get_columns(iskey=True)]
     if 'aggregate' in params:
         ops = params['aggregate']
-        for col in deptable.get_columns(iskey=False):
+        for col in basetable.get_columns(iskey=False):
             if col.name not in ops:
                 ops[col.name] = 'sum'
 
@@ -296,7 +290,7 @@ def avg_groupby_aggregate(df, keys, ops, t_col, total_t):
     >>> data.append(q2_data)
     >>> data.append(q3_data)
 
-    >>> df = pandas.DataFrame(data, 
+    >>> df = pandas.DataFrame(data,
            columns = ['proto', 'bytes', 'avg_bytes', 'interval'])
 
     >>> avg_groupby_aggregate(df, ['proto'],
