@@ -12,6 +12,7 @@ from rvbd.common.timeutils import datetime_to_seconds, timedelta_total_seconds
 
 from rvbd_portal.apps.datasource.models import (Job, Table, Column, TableField,
                                                 BatchJobRunner)
+from rvbd_portal.libs.fields import Function
 from rvbd_portal.apps.datasource.forms import fields_add_time_selection
 from rvbd_portal.apps.datasource.modules import analysis
 from rvbd_portal.apps.datasource.modules.analysis import AnalysisException, \
@@ -73,7 +74,7 @@ def get_timestable(biztable):
 
 
 def timestable(name):
-    a = AnalysisTable(name, tables={}, func=compute_times)
+    a = AnalysisTable(name, tables={}, function=compute_times)
     a.add_column('starttime', 'Start time', datatype='time',
                  iskey=True, issortcol=True)
     a.add_column('endtime',   'End time', datatype='time', iskey=True)
@@ -82,12 +83,12 @@ def timestable(name):
     return a.table
 
 def create(name, basetable, aggregate, **kwargs):
-    a = AnalysisTable( name,
-                       tables={'times': timestable(name + '-times').id},
-                       related_tables={'basetable': basetable.id},
-                       func=report_business_hours,
-                       params={'aggregate': aggregate},
-                       **kwargs)
+    a = AnalysisTable(name,
+                      tables={'times': timestable(name + '-times').id},
+                      related_tables={'basetable': basetable.id},
+                      function=Function(report_business_hours,
+                                        params={'aggregate': aggregate}),
+                      **kwargs)
 
     a.table.copy_columns(basetable)
     return a.table

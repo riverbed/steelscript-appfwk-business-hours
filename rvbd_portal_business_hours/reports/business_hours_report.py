@@ -10,6 +10,7 @@ from rvbd_portal.apps.datasource.modules.analysis import AnalysisTable
 from rvbd_portal.apps.report.models import Report, Section
 import rvbd_portal.apps.report.modules.yui3 as yui3
 from rvbd_portal.apps.datasource.modules import analysis
+from rvbd_portal.libs.fields import Function
 import rvbd_portal.libs.profiler_tools as protools
 
 from rvbd_portal_profiler.datasources import profiler
@@ -83,7 +84,7 @@ devtable.add_column('version', 'Flow Version', isnumeric=False)
 
 interfaces = AnalysisTable('bh-interfaces', tables={'devices': devtable,
                                                     'traffic': biztable},
-                           func=protools.process_join_ip_device)
+                           function=protools.process_join_ip_device)
 
 interfaces.add_column('interface_name', 'Interface', iskey=True,
                       isnumeric=False)
