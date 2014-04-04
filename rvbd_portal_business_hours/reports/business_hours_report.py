@@ -33,9 +33,9 @@ section = Section.create(report)
 #
 # Define by-interface table from Profiler
 #
-basetable = ProfilerGroupbyTable('bh-basetable', groupby='interface',
-                                 duration=60,
-                                 resolution=3600, interface=True)
+basetable = ProfilerGroupbyTable.create('bh-basetable', groupby='interface',
+                                        duration=60,
+                                        resolution=3600, interface=True)
 
 # Define all of your columns here associated with basetable
 # For each data column (iskey=False), you must specify the aggregation method
@@ -68,7 +68,7 @@ basetable.add_column('out_avg_util', '% Utilization Out', units='pct',
 #   min    - minimum of all values
 #   max    - maximum of all values
 #
-biztable = bizhours.create('bh-biztable', basetable.table,
+biztable = bizhours.create('bh-biztable', basetable,
                            aggregate={'avg_util': 'avg',
                                       'in_avg_util': 'avg',
                                       'out_avg_util': 'avg'})
