@@ -70,7 +70,7 @@ def fields_add_business_hour_fields(obj,
 
 
 def get_timestable(biztable):
-    return biztable.options['tables']['times']
+    return Table.from_ref(biztable.options['tables']['times'])
 
 
 def timestable(name):
@@ -181,7 +181,7 @@ def report_business_hours(query, tables, criteria, params):
     if times is None or len(times) == 0:
         return None
 
-    basetable = Table.objects.get(id=query.table.options['related_tables']['basetable'])
+    basetable = Table.from_ref(query.table.options['related_tables']['basetable'])
 
     # Create all the jobs
     batch = BatchJobRunner(query)
