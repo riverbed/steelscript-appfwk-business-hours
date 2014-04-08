@@ -75,23 +75,23 @@ biztable = bizhours.create('bh-biztable', basetable,
 
 # Device Table
 
-devtable = ProfilerDeviceTable('devtable')
+devtable = ProfilerDeviceTable.create('devtable')
 devtable.add_column('ipaddr', 'Device IP', iskey=True,
                     datatype="string")
 devtable.add_column('name', 'Device Name', datatype="string")
 devtable.add_column('type', 'Flow Type', datatype="string")
 devtable.add_column('version', 'Flow Version', datatype="string")
 
-interfaces = AnalysisTable('bh-interfaces', tables={'devices': devtable,
-                                                    'traffic': biztable},
-                           function=protools.process_join_ip_device)
+interfaces = AnalysisTable.create('bh-interfaces', tables={'devices': devtable,
+                                                           'traffic': biztable},
+                                  function=protools.process_join_ip_device)
 
 interfaces.add_column('interface_name', 'Interface', iskey=True,
                       datatype="string")
-interfaces.table.copy_columns(biztable, except_columns=['interface_dns'])
+interfaces.copy_columns(biztable, except_columns=['interface_dns'])
 
-yui3.TableWidget.create(section, interfaces.table, "Interface", height=600)
-yui3.BarWidget.create(section, interfaces.table, "Interface Utilization", height=600,
+yui3.TableWidget.create(section, interfaces, "Interface", height=600)
+yui3.BarWidget.create(section, interfaces, "Interface Utilization", height=600,
                       keycols=['interface_name'], valuecols=['avg_util'])
 
 yui3.TableWidget.create(section, bizhours.get_timestable(biztable), "Covered times",

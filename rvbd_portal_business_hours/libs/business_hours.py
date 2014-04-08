@@ -74,24 +74,26 @@ def get_timestable(biztable):
 
 
 def timestable(name):
-    a = AnalysisTable(name, tables={}, function=compute_times)
+    a = AnalysisTable.create(name, tables={}, function=compute_times)
     a.add_column('starttime', 'Start time', datatype='time',
                  iskey=True, issortcol=True)
     a.add_column('endtime',   'End time', datatype='time', iskey=True)
     a.add_column('totalsecs', 'Total secs')
-    fields_add_business_hour_fields(a.table)
-    return a.table
+    fields_add_business_hour_fields(a)
+    return a
+
 
 def create(name, basetable, aggregate, **kwargs):
-    a = AnalysisTable(name,
-                      tables={'times': timestable(name + '-times').id},
-                      related_tables={'basetable': basetable.id},
-                      function=Function(report_business_hours,
-                                        params={'aggregate': aggregate}),
-                      **kwargs)
+    a = AnalysisTable.create(name,
+                             tables={'times': timestable(name + '-times')},
+                             related_tables={'basetable': basetable},
+                             function=Function(report_business_hours,
+                                               params={'aggregate': aggregate}),
+                             **kwargs)
 
-    a.table.copy_columns(basetable)
-    return a.table
+    a.copy_columns(basetable)
+    return a
+
 
 def parse_time(t_str):
     m = re.match("^([0-9]+):([0-9][0-9]) *([aApP][mM]?)?$", t_str)
@@ -184,7 +186,7 @@ def report_business_hours(query, tables, criteria, params):
     # Create all the jobs
     batch = BatchJobRunner(query)
     for i, row in times.iterrows():
-        (t0,t1) = (row['starttime'], row['endtime'])
+        (t0, t1) = (row['starttime'], row['endtime'])
         sub_criteria = copy.copy(criteria)
         sub_criteria.starttime = t0
         sub_criteria.endtime = t1
