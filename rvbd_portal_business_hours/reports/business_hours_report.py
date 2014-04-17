@@ -7,28 +7,22 @@
 # This software is distributed "AS IS" as set forth in the License.
 from rvbd_portal.apps.datasource.modules.analysis import AnalysisTable
 
-from rvbd_portal.apps.report.models import Report, Section
+from rvbd_portal.apps.report.models import Report
 import rvbd_portal.apps.report.modules.yui3 as yui3
-from rvbd_portal.apps.datasource.modules import analysis
-from rvbd_portal.libs.fields import Function
 import rvbd_portal.libs.profiler_tools as protools
-
-from rvbd_portal_profiler.datasources import profiler
-from rvbd_portal_profiler.datasources import profiler_devices
 
 import rvbd_portal_business_hours.libs.business_hours as bizhours
 from rvbd_portal_profiler.datasources.profiler import ProfilerGroupbyTable
-from rvbd_portal_profiler.datasources.profiler_devices import \
-    ProfilerDeviceTable
+from rvbd_portal_profiler.datasources.profiler_devices import ProfilerDeviceTable
 
-report = Report(title="Business Hour Reporting - Profiler Interfaces", position=9,
-                field_order=['endtime', 'duration', 'profiler_filterexpr',
-                             'business_hours_start', 'business_hours_end',
-                             'business_hours_tzname', 'business_hours_weekends'],
-                hidden_fields=['resolution'])
-report.save()
+report = Report.create("Business Hour Reporting - Profiler Interfaces",
+                       position=9,
+                       field_order=['endtime', 'duration', 'profiler_filterexpr',
+                                    'business_hours_start', 'business_hours_end',
+                                    'business_hours_tzname', 'business_hours_weekends'],
+                       hidden_fields=['resolution'])
 
-section = Section.create(report)
+report.add_section()
 
 #
 # Define by-interface table from Profiler
@@ -90,9 +84,9 @@ interfaces.add_column('interface_name', 'Interface', iskey=True,
                       datatype="string")
 interfaces.copy_columns(biztable, except_columns=['interface_dns'])
 
-yui3.TableWidget.create(section, interfaces, "Interface", height=600)
-yui3.BarWidget.create(section, interfaces, "Interface Utilization", height=600,
+report.add_widget(yui3.TableWidget, interfaces, "Interface", height=600)
+report.add_widget(yui3.BarWidget, interfaces, "Interface Utilization", height=600,
                       keycols=['interface_name'], valuecols=['avg_util'])
 
-yui3.TableWidget.create(section, bizhours.get_timestable(biztable), "Covered times",
+report.add_widget(yui3.TableWidget, bizhours.get_timestable(biztable), "Covered times",
                         width=12, height=200)
