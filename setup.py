@@ -13,7 +13,7 @@ tests_require = []
 
 install_requires = [
     'Django>=1.5.1,<1.6',
-    'rvbd-portal-profiler>=0.1',
+    'steelscript.netprofiler>=0.1',
     # flyscript-portal should be here too
 ]
 

@@ -8,7 +8,7 @@ import pytz
 from django.core.exceptions import ObjectDoesNotExist
 from django import forms
 
-from rvbd.common.timeutils import datetime_to_seconds, timedelta_total_seconds
+from steelscript.common.timeutils import datetime_to_seconds, timedelta_total_seconds
 
 from rvbd_portal.apps.datasource.models import (Job, Table, Column, TableField,
                                                 BatchJobRunner)
