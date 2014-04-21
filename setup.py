@@ -1,63 +1,81 @@
 #!/usr/bin/env python
 """
-rvbd-portal-business-hours
+steelscript-appfw-business-hours
 ==========
 
-A plugin for FlyScript Portal to enable Business Hour reports
+A plugin for SteelScript App Framework to enable Business Hour reports.
 
 """
-from setuptools import setup, find_packages
+import os
+import glob
 
+try:
+    from setuptools import setup, find_packages, Command
+    packagedata = True
+except ImportError:
+    from distutils.core import setup
+    from distutils.cmd import Command
+    packagedata = False
 
-tests_require = []
+    def find_packages(path='steelscript'):
+        return [p for p, files, dirs in os.walk(path) if '__init__.py' in files]
 
-install_requires = [
-    'Django>=1.5.1,<1.6',
-    'steelscript.netprofiler>=0.1',
-    # flyscript-portal should be here too
-]
+from versioning import get_version
 
-LICENSE = """\
-Copyright (c) 2013 Riverbed Technology, Inc.
+setup_args = {
+    'name':               'steelscript-appfw-business-hours',
+    'namespace_packages': ['steelscript'],
+    'version':            get_version(),
+    'author':             'Riverbed Technology',
+    'author_email':       'eng-github@riverbed.com',
+    'url':                'http://pythonhosted.org/steelscript',
+    'description':        'Business-Hours plugin for SteelScript Application Framework',
 
-This software is licensed under the terms and conditions of the
-MIT License set forth at:
+    'long_description': """Business-Hours for SteelScript Application Framework
+====================================================
 
-https://github.com/riverbed/flyscript/blob/master/LICENSE ("License").
+SteelScript is a collection of libraries and scripts in Python and JavaScript for
+interacting with Riverbed Technology devices.
 
-This software is distributed "AS IS" as set forth in the License.
-"""
+For a complete guide to installation, see:
 
-setup(
-    name='rvbd-portal-business-hours',
-    version='0.0.1',
+http://pythonhosted.org/steelscript/install.html
+    """,
+    'license': 'MIT',
 
-    author='Riverbed Technology',
-    author_email='eng-github@riverbed.com',
-    url='',
-    description='A business hours plugin for FlyScript Portal '
-                'providing reports and support libraries',
-    long_description=__doc__,
-    license=LICENSE,
+    'platforms': 'Linux, Mac OS, Windows',
 
-    packages=find_packages(),
-    zip_safe=False,
-    install_requires=install_requires,
-    tests_require=tests_require,
-    extras_require=None,
-    test_suite='',
-    include_package_data=True,
-    entry_points={
+    'classifiers': (
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Information Technology',
+        'Intended Audience :: System Administrators',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Topic :: System :: Networking',
+    ),
+
+    'packages': find_packages(),
+
+    'scripts': None,
+
+    'install_requires': (
+        'steelscript.common>=0.6',
+        'steelscript.netprofiler>=0.1',
+        'steelscript.appfw.core>=0.1',
+    ),
+
+    'tests_require': (),
+
+    'entry_points': {
         'portal.plugins': [
-            'business_hours = rvbd_portal_business_hours.plugin:BusinessHoursPlugin'
+            'business_hours = steelscript.profiler.appfw.plugin:BusinessHoursPlugin'
         ],
     },
+}
 
-    classifiers=[
-        'Framework :: Django',
-        'Intended Audience :: Developers',
-        'Intended Audience :: System Administrators',
-        'Operating System :: OS Independent',
-        'Topic :: Software Development'
-    ],
-)
+if packagedata:
+    setup_args['include_package_data'] = True
+
+setup(**setup_args)
