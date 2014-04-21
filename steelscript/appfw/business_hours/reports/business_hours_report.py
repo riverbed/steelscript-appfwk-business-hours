@@ -11,9 +11,9 @@ from rvbd_portal.apps.report.models import Report
 import rvbd_portal.apps.report.modules.yui3 as yui3
 import rvbd_portal.libs.profiler_tools as protools
 
-import rvbd_portal_business_hours.libs.business_hours as bizhours
-from rvbd_portal_profiler.datasources.profiler import ProfilerGroupbyTable
-from rvbd_portal_profiler.datasources.profiler_devices import ProfilerDeviceTable
+import steelscript.appfw.business_hours.libs.business_hours as bizhours
+from steelscript.profiler.appfw.datasources.profiler import ProfilerGroupbyTable
+from steelscript.profiler.appfw.datasources.profiler_devices import ProfilerDeviceTable
 
 report = Report.create("Business Hour Reporting - Profiler Interfaces",
                        position=9,

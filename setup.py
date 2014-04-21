@@ -63,14 +63,14 @@ http://pythonhosted.org/steelscript/install.html
     'install_requires': (
         'steelscript.common>=0.6',
         'steelscript.netprofiler>=0.1',
-        'steelscript.appfw.core>=0.1',
+        #'steelscript.appfw.core>=0.1',
     ),
 
     'tests_require': (),
 
     'entry_points': {
         'portal.plugins': [
-            'business_hours = steelscript.profiler.appfw.plugin:BusinessHoursPlugin'
+            'business_hours = steelscript.appfw.business_hours.plugin:BusinessHoursPlugin'
         ],
     },
 }
