@@ -5,11 +5,11 @@
 # MIT License set forth at:
 #   https://github.com/riverbed/flyscript-portal/blob/master/LICENSE ("License").
 # This software is distributed "AS IS" as set forth in the License.
-from rvbd_portal.apps.datasource.modules.analysis import AnalysisTable
+from steelscript.appfw.core.apps.datasource.modules.analysis import AnalysisTable
 
-from rvbd_portal.apps.report.models import Report
-import rvbd_portal.apps.report.modules.yui3 as yui3
-import rvbd_portal.libs.profiler_tools as protools
+from steelscript.appfw.core.apps.report.models import Report
+import steelscript.appfw.core.apps.report.modules.yui3 as yui3
+import steelscript.appfw.core.libs.profiler_tools as protools
 
 import steelscript.appfw.business_hours.libs.business_hours as bizhours
 from steelscript.profiler.appfw.datasources.profiler import ProfilerGroupbyTable
