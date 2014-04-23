@@ -13,7 +13,7 @@ import steelscript.appfw.core.libs.profiler_tools as protools
 
 import steelscript.appfw.business_hours.libs.business_hours as bizhours
 from steelscript.netprofiler.appfw.datasources.netprofiler import NetProfilerGroupbyTable
-from steelscript.netprofiler.appfw.datasources.netprofiler_devices import ProfilerDeviceTable
+from steelscript.netprofiler.appfw.datasources.netprofiler_devices import NetProfilerDeviceTable
 
 report = Report.create("Business Hour Reporting - NetProfiler Interfaces",
                        position=9,
@@ -69,7 +69,7 @@ biztable = bizhours.create('bh-biztable', basetable,
 
 # Device Table
 
-devtable = ProfilerDeviceTable.create('devtable')
+devtable = NetProfilerDeviceTable.create('devtable')
 devtable.add_column('ipaddr', 'Device IP', iskey=True,
                     datatype="string")
 devtable.add_column('name', 'Device Name', datatype="string")
