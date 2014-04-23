@@ -5,13 +5,15 @@
 #   https://github.com/riverbed/flyscript-portal/blob/master/LICENSE ("License").
 # This software is distributed "AS IS" as set forth in the License.
 
+import pkg_resources
+
 from steelscript.appfw.core.apps.plugins import Plugin
 
 
 class BusinessHoursPlugin(Plugin):
     title = 'Business Hours Report Plugin'
     description = 'A business hours plugin with reports and support libraries'
-    version = '0.0.1'
+    version = pkg_resources.get_distribution('steelscript.appfw.business-hours').version
     author = 'Riverbed Technology'
 
     enabled = True
