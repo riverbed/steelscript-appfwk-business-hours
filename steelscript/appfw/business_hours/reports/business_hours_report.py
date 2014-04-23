@@ -12,10 +12,10 @@ import steelscript.appfw.core.apps.report.modules.yui3 as yui3
 import steelscript.appfw.core.libs.profiler_tools as protools
 
 import steelscript.appfw.business_hours.libs.business_hours as bizhours
-from steelscript.profiler.appfw.datasources.profiler import ProfilerGroupbyTable
-from steelscript.profiler.appfw.datasources.profiler_devices import ProfilerDeviceTable
+from steelscript.netprofiler.appfw.datasources.netprofiler import NetProfilerGroupbyTable
+from steelscript.netprofiler.appfw.datasources.netprofiler_devices import ProfilerDeviceTable
 
-report = Report.create("Business Hour Reporting - Profiler Interfaces",
+report = Report.create("Business Hour Reporting - NetProfiler Interfaces",
                        position=9,
                        field_order=['endtime', 'duration', 'profiler_filterexpr',
                                     'business_hours_start', 'business_hours_end',
@@ -25,9 +25,9 @@ report = Report.create("Business Hour Reporting - Profiler Interfaces",
 report.add_section()
 
 #
-# Define by-interface table from Profiler
+# Define by-interface table from NetProfiler
 #
-basetable = ProfilerGroupbyTable.create('bh-basetable', groupby='interface',
+basetable = NetProfilerGroupbyTable.create('bh-basetable', groupby='interface',
                                         duration=60,
                                         resolution=3600, interface=True)
 
