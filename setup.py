@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-steelscript-appfw-business-hours
+steelscript-appfwk-business-hours
 ==========
 
 A plugin for SteelScript App Framework to enable Business Hour reports.
@@ -22,7 +22,7 @@ except ImportError:
 from gitpy_versioning import get_version
 
 setup_args = {
-    'name':               'steelscript.appfw.business-hours',
+    'name':               'steelscript.appfwk.business-hours',
     'namespace_packages': ['steelscript'],
     'version':            get_version(),
     'author':             'Riverbed Technology',
@@ -62,14 +62,14 @@ http://pythonhosted.org/steelscript/install.html
     'install_requires': (
         'steelscript.common>=0.6',
         'steelscript.netprofiler>=0.1',
-        #'steelscript.appfw.core>=0.1',
+        #'steelscript.appfwk.core>=0.1',
     ),
 
     'tests_require': (),
 
     'entry_points': {
         'portal.plugins': [
-            'business_hours = steelscript.appfw.business_hours.plugin:BusinessHoursPlugin'
+            'business_hours = steelscript.appfwk.business_hours.plugin:BusinessHoursPlugin'
         ],
     },
 }

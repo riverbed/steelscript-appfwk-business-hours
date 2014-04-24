@@ -10,12 +10,12 @@ from django import forms
 
 from steelscript.common.timeutils import datetime_to_seconds, timedelta_total_seconds
 
-from steelscript.appfw.core.apps.datasource.models import (Job, Table, Column, TableField,
+from steelscript.appfwk.core.apps.datasource.models import (Job, Table, Column, TableField,
                                                 BatchJobRunner)
-from steelscript.appfw.core.libs.fields import Function
-from steelscript.appfw.core.apps.datasource.forms import fields_add_time_selection
-from steelscript.appfw.core.apps.datasource.modules import analysis
-from steelscript.appfw.core.apps.datasource.modules.analysis import AnalysisException, \
+from steelscript.appfwk.core.libs.fields import Function
+from steelscript.appfwk.core.apps.datasource.forms import fields_add_time_selection
+from steelscript.appfwk.core.apps.datasource.modules import analysis
+from steelscript.appfwk.core.apps.datasource.modules.analysis import AnalysisException, \
     AnalysisTable
 
 

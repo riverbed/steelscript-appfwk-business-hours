@@ -5,15 +5,15 @@
 # MIT License set forth at:
 #   https://github.com/riverbed/flyscript-portal/blob/master/LICENSE ("License").
 # This software is distributed "AS IS" as set forth in the License.
-from steelscript.appfw.core.apps.datasource.modules.analysis import AnalysisTable
+from steelscript.appfwk.core.apps.datasource.modules.analysis import AnalysisTable
 
-from steelscript.appfw.core.apps.report.models import Report
-import steelscript.appfw.core.apps.report.modules.yui3 as yui3
-import steelscript.appfw.core.libs.profiler_tools as protools
+from steelscript.appfwk.core.apps.report.models import Report
+import steelscript.appfwk.core.apps.report.modules.yui3 as yui3
+import steelscript.appfwk.core.libs.profiler_tools as protools
 
-import steelscript.appfw.business_hours.libs.business_hours as bizhours
-from steelscript.netprofiler.appfw.datasources.netprofiler import NetProfilerGroupbyTable
-from steelscript.netprofiler.appfw.datasources.netprofiler_devices import NetProfilerDeviceTable
+import steelscript.appfwk.business_hours.libs.business_hours as bizhours
+from steelscript.netprofiler.appfwk.datasources.netprofiler import NetProfilerGroupbyTable
+from steelscript.netprofiler.appfwk.datasources.netprofiler_devices import NetProfilerDeviceTable
 
 report = Report.create("Business Hour Reporting - NetProfiler Interfaces",
                        position=9,

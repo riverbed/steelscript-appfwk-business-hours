@@ -7,13 +7,13 @@
 
 import pkg_resources
 
-from steelscript.appfw.core.apps.plugins import Plugin
+from steelscript.appfwk.core.apps.plugins import Plugin
 
 
 class BusinessHoursPlugin(Plugin):
     title = 'Business Hours Report Plugin'
     description = 'A business hours plugin with reports and support libraries'
-    version = pkg_resources.get_distribution('steelscript.appfw.business-hours').version
+    version = pkg_resources.get_distribution('steelscript.appfwk.business-hours').version
     author = 'Riverbed Technology'
 
     enabled = True
