@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 steelscript-appfwk-business-hours
 ==========
@@ -16,8 +15,8 @@ except ImportError:
     from distutils.cmd import Command
     packagedata = False
 
-    def find_packages(path='steelscript'):
-        return [p for p, files, dirs in os.walk(path) if '__init__.py' in files]
+    def find_packages(where='steelscript', exclude=None):
+        return [p for p, files, dirs in os.walk(where) if '__init__.py' in files]
 
 from gitpy_versioning import get_version
 
@@ -55,14 +54,14 @@ http://pythonhosted.org/steelscript/install.html
         'Topic :: System :: Networking',
     ),
 
-    'packages': find_packages(),
+    'packages': find_packages(exclude=('gitpy_versioning',)),
 
     'scripts': None,
 
     'install_requires': (
         'steelscript.common>=0.6',
         'steelscript.netprofiler>=0.1',
-        #'steelscript.appfwk.core>=0.1',
+        'steelscript.appfwk.core>=0.1',
     ),
 
     'tests_require': (),
