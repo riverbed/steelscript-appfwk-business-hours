@@ -59,7 +59,7 @@ http://pythonhosted.org/steelscript/install.html
     'scripts': None,
 
     'install_requires': (
-        'steelscript.common>=0.6',
+        'steelscript>=0.6',
         'steelscript.netprofiler>=0.1',
         'steelscript.appfwk.core>=0.1',
     ),
