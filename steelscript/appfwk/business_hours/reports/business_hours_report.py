@@ -15,7 +15,7 @@ from steelscript.netprofiler.appfwk.datasources.netprofiler import NetProfilerGr
 from steelscript.netprofiler.appfwk.datasources.netprofiler_devices import NetProfilerDeviceTable
 
 report = Report.create("Business Hour Reporting - NetProfiler Interfaces",
-                       position=9,
+                       position=10,
                        field_order=['endtime', 'duration', 'profiler_filterexpr',
                                     'business_hours_start', 'business_hours_end',
                                     'business_hours_tzname', 'business_hours_weekends'],

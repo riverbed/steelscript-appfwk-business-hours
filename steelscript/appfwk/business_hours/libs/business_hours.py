@@ -186,7 +186,7 @@ def report_business_hours(query, tables, criteria, params):
     if times is None or len(times) == 0:
         return None
 
-    basetable = Table.from_ref(query.table.options['related_tables']['basetable'])
+    basetable = tables['basetable']
 
     # Create all the jobs
     batch = BatchJobRunner(query)
