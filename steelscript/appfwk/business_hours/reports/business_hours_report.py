@@ -27,8 +27,8 @@ report.add_section()
 # Define by-interface table from NetProfiler
 #
 basetable = NetProfilerGroupbyTable.create('bh-basetable', groupby='interface',
-                                        duration=60,
-                                        resolution=3600, interface=True)
+                                           duration=60,
+                                           resolution=3600, interface=True)
 
 # Define all of your columns here associated with basetable
 # For each data column (iskey=False), you must specify the aggregation method
@@ -38,11 +38,9 @@ basetable.add_column('interface_dns', 'Interface', iskey=True,
 basetable.add_column('interface_alias', 'Ifalias', iskey=True,
                      datatype="string")
 basetable.add_column('avg_util', '% Utilization', units='pct',
-                     issortcol=True)
-basetable.add_column('in_avg_util', '% Utilization In', units='pct',
-                     issortcol=False)
-basetable.add_column('out_avg_util', '% Utilization Out', units='pct',
-                     issortcol=False)
+                     sortdesc=True)
+basetable.add_column('in_avg_util', '% Utilization In', units='pct')
+basetable.add_column('out_avg_util', '% Utilization Out', units='pct')
 
 # The 'aggregate' parameter describes how similar rows on different business
 # days should be combined.  For example:

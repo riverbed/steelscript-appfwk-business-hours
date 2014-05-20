@@ -81,7 +81,7 @@ def get_timestable(biztable):
 def timestable(name):
     a = AnalysisTable.create(name, tables={}, function=compute_times)
     a.add_column('starttime', 'Start time', datatype='time',
-                 iskey=True, issortcol=True)
+                 iskey=True, sortasc=True)
     a.add_column('endtime',   'End time', datatype='time', iskey=True)
     a.add_column('totalsecs', 'Total secs')
     fields_add_business_hour_fields(a)
