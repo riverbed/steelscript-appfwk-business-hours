@@ -10,7 +10,7 @@ from steelscript.appfwk.apps.report.models import Report
 import steelscript.appfwk.apps.report.modules.yui3 as yui3
 import steelscript.appfwk.libs.profiler_tools as protools
 
-import steelscript.appfwk.business_hours.libs.business_hours as bizhours
+import steelscript.appfwk.business_hours.datasource.business_hours_source as bizhours
 from steelscript.netprofiler.appfwk.datasources.netprofiler import NetProfilerGroupbyTable
 from steelscript.netprofiler.appfwk.datasources.netprofiler_devices import NetProfilerDeviceTable
 
@@ -59,10 +59,10 @@ basetable.add_column('out_avg_util', '% Utilization Out', units='pct')
 #   min    - minimum of all values
 #   max    - maximum of all values
 #
-biztable = bizhours.create('bh-biztable', basetable,
-                           aggregate={'avg_util': 'avg',
-                                      'in_avg_util': 'avg',
-                                      'out_avg_util': 'avg'})
+biztable = bizhours.BusinessHoursTable.create('bh-biztable', basetable,
+                                              aggregate={'avg_util': 'avg',
+                                                         'in_avg_util': 'avg',
+                                                         'out_avg_util': 'avg'})
 
 # Device Table
 
@@ -73,13 +73,7 @@ devtable.add_column('name', 'Device Name', datatype="string")
 devtable.add_column('type', 'Flow Type', datatype="string")
 devtable.add_column('version', 'Flow Version', datatype="string")
 
-interfaces = AnalysisTable.create('bh-interfaces', tables={'devices': devtable,
-                                                           'traffic': biztable},
-                                  function=protools.process_join_ip_device)
-
-interfaces.add_column('interface_name', 'Interface', iskey=True,
-                      datatype="string")
-interfaces.copy_columns(biztable, except_columns=['interface_dns'])
+interfaces = protools.ProfilerMergeIpDeviceTable.create('bh-interfaces', devtable, biztable)
 
 report.add_widget(yui3.TableWidget, interfaces, "Interface", height=600)
 report.add_widget(yui3.BarWidget, interfaces, "Interface Utilization", height=600,

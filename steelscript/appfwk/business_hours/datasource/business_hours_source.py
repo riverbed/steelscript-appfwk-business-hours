@@ -18,11 +18,31 @@ from steelscript.appfwk.apps.datasource.models import (Job, Table, TableField,
                                                        BatchJobRunner)
 from steelscript.appfwk.libs.fields import Function
 from steelscript.appfwk.apps.datasource.forms import fields_add_time_selection
-from steelscript.appfwk.apps.datasource.modules.analysis import AnalysisException, \
-    AnalysisTable
+from steelscript.appfwk.apps.datasource.modules.analysis import \
+    AnalysisException, AnalysisTable, AnalysisQuery
 
 
 logger = logging.getLogger(__name__)
+
+
+def parse_time(t_str):
+    m = re.match("^([0-9]+):([0-9][0-9]) *([aApP][mM]?)?$", t_str)
+    if not m:
+        raise ValueError("Could not parse time string: %s" % t_str)
+    hours = int(m.group(1))
+    minutes = int(m.group(2))
+    ampm = m.group(3)
+    if ampm:
+        if ampm.lower()[0] == 'p':
+            hours = hours + 12
+    return datetime.time(hours, minutes, 0)
+
+
+def replace_time(dt, t):
+    return dt.replace(hour=t.hour,
+                      minute=t.minute,
+                      second=0,
+                      microsecond=0)
 
 
 def fields_add_business_hour_fields(obj,
@@ -75,180 +95,189 @@ def fields_add_business_hour_fields(obj,
 
 
 def get_timestable(biztable):
-    return Table.from_ref(biztable.options['tables']['times'])
+    return Table.from_ref(biztable.options.tables['times'])
 
 
-def timestable(name):
-    a = AnalysisTable.create(name, tables={}, function=compute_times)
-    a.add_column('starttime', 'Start time', datatype='time',
-                 iskey=True, sortasc=True)
-    a.add_column('endtime',   'End time', datatype='time', iskey=True)
-    a.add_column('totalsecs', 'Total secs')
-    fields_add_business_hour_fields(a)
-    return a
+class BusinessHoursTimesTable(AnalysisTable):
+
+    class Meta: proxy = True
+
+    _query_class = 'BusinessHoursTimesQuery'
+
+    def post_process_table(self, field_options):
+        super(BusinessHoursTimesTable, self).post_process_table(field_options)
+
+        self.add_column('starttime', 'Start time', datatype='time',
+                        iskey=True, sortasc=True)
+        self.add_column('endtime',   'End time', datatype='time', iskey=True)
+        self.add_column('totalsecs', 'Total secs')
+        fields_add_business_hour_fields(self)
 
 
-def create(name, basetable, aggregate, **kwargs):
-    a = AnalysisTable.create(name,
-                             tables={'times': timestable(name + '-times')},
-                             related_tables={'basetable': basetable},
-                             function=Function(report_business_hours,
-                                               params={'aggregate': aggregate}),
-                             **kwargs)
+class BusinessHoursTimesQuery(AnalysisQuery):
 
-    a.copy_columns(basetable)
-    return a
+    def post_run(self):
+        criteria = self.job.criteria
+        tables = self.tables
 
+        tzname = criteria.business_hours_tzname
+        logger.debug("%s: timezone: %s" % (self.job, tzname))
+        tz = pytz.timezone(tzname)
 
-def parse_time(t_str):
-    m = re.match("^([0-9]+):([0-9][0-9]) *([aApP][mM]?)?$", t_str)
-    if not m:
-        raise ValueError("Could not parse time string: %s" % t_str)
-    hours = int(m.group(1))
-    minutes = int(m.group(2))
-    ampm = m.group(3)
-    if ampm:
-        if ampm.lower()[0] == 'p':
-            hours = hours + 12
-    return datetime.time(hours, minutes, 0)
+        # Convert to datetime objects in the requested timezone
+        st = criteria.starttime.astimezone(tz)
+        et = criteria.endtime.astimezone(tz)
+        logger.debug("%s: times: %s - %s" % (self.job, st, et))
 
+        # Business hours start/end, as string "HH:MMam" like 8:00am
+        sb = parse_time(criteria.business_hours_start)
+        eb = parse_time(criteria.business_hours_end)
 
-def replace_time(dt, t):
-    return dt.replace(hour=t.hour,
-                      minute=t.minute,
-                      second=0,
-                      microsecond=0)
+        weekends = criteria.business_hours_weekends
 
+        # Iterate from st to et until
+        times = []
+        t = st
+        while t <= et:
+            # Set t0/t1 to date of t but time of sb/eb
+            t0 = replace_time(t, sb)
+            t1 = replace_time(t, eb)
 
-def compute_times(query, tables, criteria, params):
-    tzname = criteria.business_hours_tzname
-    logger.debug("%s: timezone: %s" % (query.job, tzname))
-    tz = pytz.timezone(tzname)
+            # Advance t by 1 day
+            t = t + datetime.timedelta(days=1)
 
-    # Convert to datetime objects in the requested timezone
-    st = criteria.starttime.astimezone(tz)
-    et = criteria.endtime.astimezone(tz)
-    logger.debug("%s: times: %s - %s" % (query.job, st, et))
+            # Skip weekends
+            if not weekends and t0.weekday() >= 5:
+                continue
 
-    # Business hours start/end, as string "HH:MMam" like 8:00am
-    sb = parse_time(criteria.business_hours_start)
-    eb = parse_time(criteria.business_hours_end)
+            # Now see if we have any overlap of busines hours for today
+            if et < t0:
+                # Report end time is today before busines hours start, all done
+                break
 
-    weekends = criteria.business_hours_weekends
+            if et < t1:
+                # Report end time is today in the middle of busines hours, adjust
+                t1 = et
 
-    # Iterate from st to et until
-    times = []
-    t = st
-    while t <= et:
-        # Set t0/t1 to date of t but time of sb/eb
-        t0 = replace_time(t, sb)
-        t1 = replace_time(t, eb)
+            if t1 < st:
+                # Report start time occurs today *after* business end, nothing today
+                continue
 
-        # Advance t by 1 day
-        t = t + datetime.timedelta(days=1)
+            if t0 < st:
+                # Report start time occurs today in the middle of the business hours
+                # Adjust t0
+                t0 = st
 
-        # Skip weekends
-        if not weekends and t0.weekday() >= 5:
-            continue
+            logger.debug("%s: start: %s, end: %s, duration: %s" %
+                         (self.job, str(t0), str(t1), str(timedelta_total_seconds(t1-t0))))
+            times.append((t0, t1, timedelta_total_seconds(t1-t0)))
 
-        # Now see if we have any overlap of busines hours for today
-        if et < t0:
-            # Report end time is today before busines hours start, all done
-            break
-
-        if et < t1:
-            # Report end time is today in the middle of busines hours, adjust
-            t1 = et
-
-        if t1 < st:
-            # Report start time occurs today *after* business end, nothing today
-            continue
-
-        if t0 < st:
-            # Report start time occurs today in the middle of the business hours
-            # Adjust t0
-            t0 = st
-
-        logger.debug("%s: start: %s, end: %s, duration: %s" %
-                     (query.job, str(t0), str(t1), str(timedelta_total_seconds(t1-t0))))
-        times.append((t0, t1, timedelta_total_seconds(t1-t0)))
-
-    if len(times) == 0:
-        return None
-    else:
-        return pandas.DataFrame(times,
-                                columns=['starttime', 'endtime', 'totalsecs'])
-
-
-def report_business_hours(query, tables, criteria, params):
-    times = tables['times']
-
-    if times is None or len(times) == 0:
-        return None
-
-    basetable = tables['basetable']
-
-    # Create all the jobs
-    batch = BatchJobRunner(query)
-    for i, row in times.iterrows():
-        (t0, t1) = (row['starttime'], row['endtime'])
-        sub_criteria = copy.copy(criteria)
-        sub_criteria.starttime = t0
-        sub_criteria.endtime = t1
-
-        job = Job.create(table=basetable, criteria=sub_criteria)
-        logger.debug("Created %s: %s - %s" % (job, t0, t1))
-        batch.add_job(job)
-
-    if len(batch.jobs) == 0:
-        return None
-
-    # Run all the Jobs
-    batch.run()
-
-    # Now collect the data
-    total_secs = 0
-    df = None
-    idx = 0
-    for job in batch.jobs:
-        if job.status == Job.ERROR:
-            raise AnalysisException("%s for %s-%s failed: %s" %
-                                    (job, job.criteria.starttime,
-                                     job.criteria.endtime,
-                                     job.message))
-        subdf = job.data()
-        logger.debug("%s: returned %d rows" %
-                     (job, len(subdf) if subdf is not None else 0))
-        if subdf is None:
-            continue
-
-        logger.debug("%s: actual_criteria %s" % (job, job.actual_criteria))
-        t0 = job.actual_criteria.starttime
-        t1 = job.actual_criteria.endtime
-        subdf['__secs__'] = timedelta_total_seconds(t1 - t0)
-        total_secs += timedelta_total_seconds(t1 - t0)
-        idx += 1
-        if df is None:
-            df = subdf
+        if len(times) == 0:
+            self.data = None
         else:
-            df = df.append(subdf)
+            self.data = pandas.DataFrame(times,
+                                         columns=['starttime', 'endtime', 'totalsecs'])
 
-    if df is None:
-        return None
+        return True
 
-    keynames = [key.name for key in basetable.get_columns(iskey=True)]
-    if 'aggregate' in params:
-        ops = params['aggregate']
-        for col in basetable.get_columns(iskey=False):
-            if col.name not in ops:
-                ops[col.name] = 'sum'
+class BusinessHoursTable(AnalysisTable):
 
-    else:
-        ops = 'sum'
+    class Meta: proxy = True
 
-    df = avg_groupby_aggregate(df, keynames, ops, '__secs__', total_secs)
+    _query_class = 'BusinessHoursQuery'
 
-    return df
+    TABLE_OPTIONS = {'aggregate' : None }
+
+    @classmethod
+    def create(cls, name, basetable, aggregate, **kwargs):
+        timestable = BusinessHoursTimesTable.create(name + '-times')
+        kwargs['tables'] = {'times': timestable}
+        kwargs['related_tables'] = {'basetable': basetable}
+        kwargs['aggregate'] = aggregate
+        return super(BusinessHoursTable, cls).create(name, **kwargs)
+
+    def post_process_table(self, field_options):
+        super(BusinessHoursTable, self).post_process_table(field_options)
+        self.copy_columns(self.options['related_tables']['basetable'])
+
+
+class BusinessHoursQuery(AnalysisQuery):
+
+    def post_run(self):
+        criteria = self.job.criteria
+
+        times = self.tables['times']
+
+        if times is None or len(times) == 0:
+            self.data = None
+            return True
+
+        basetable = Table.from_ref(self.table.options.related_tables['basetable'])
+
+        # Create all the jobs
+        batch = BatchJobRunner(self)
+        for i, row in times.iterrows():
+            (t0, t1) = (row['starttime'], row['endtime'])
+            sub_criteria = copy.copy(criteria)
+            sub_criteria.starttime = t0
+            sub_criteria.endtime = t1
+
+            job = Job.create(table=basetable, criteria=sub_criteria)
+            logger.debug("Created %s: %s - %s" % (job, t0, t1))
+            batch.add_job(job)
+
+        if len(batch.jobs) == 0:
+            self.data = None
+            return True
+
+        # Run all the Jobs
+        batch.run()
+
+        # Now collect the data
+        total_secs = 0
+        df = None
+        idx = 0
+        for job in batch.jobs:
+            if job.status == Job.ERROR:
+                raise AnalysisException("%s for %s-%s failed: %s" %
+                                        (job, job.criteria.starttime,
+                                         job.criteria.endtime,
+                                         job.message))
+            subdf = job.data()
+            logger.debug("%s: returned %d rows" %
+                         (job, len(subdf) if subdf is not None else 0))
+            if subdf is None:
+                continue
+
+            logger.debug("%s: actual_criteria %s" % (job, job.actual_criteria))
+            t0 = job.actual_criteria.starttime
+            t1 = job.actual_criteria.endtime
+            subdf['__secs__'] = timedelta_total_seconds(t1 - t0)
+            total_secs += timedelta_total_seconds(t1 - t0)
+            idx += 1
+            if df is None:
+                df = subdf
+            else:
+                df = df.append(subdf)
+
+        if df is None:
+            self.data = None
+            return True
+
+        keynames = [key.name for key in basetable.get_columns(iskey=True)]
+        if 'aggregate' in self.table.options:
+            ops = self.table.options['aggregate']
+            for col in basetable.get_columns(iskey=False):
+                if col.name not in ops:
+                    ops[col.name] = 'sum'
+
+        else:
+            ops = 'sum'
+
+        df = avg_groupby_aggregate(df, keynames, ops, '__secs__', total_secs)
+
+        self.data = df
+        return True
 
 
 def avg_groupby_aggregate(df, keys, ops, t_col, total_t):
