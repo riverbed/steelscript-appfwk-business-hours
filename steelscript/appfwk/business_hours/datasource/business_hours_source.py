@@ -25,6 +25,12 @@ from steelscript.appfwk.apps.datasource.modules.analysis import \
 logger = logging.getLogger(__name__)
 
 
+TIMES = (['12:00am'] +
+         ['%d:00am' % h for h in range(1, 12)] +
+         ['12:00pm'] +
+         ['%d:00pm' % h for h in range(1, 12)])
+
+
 def parse_time(t_str):
     m = re.match("^([0-9]+):([0-9][0-9]) *([aApP][mM]?)?$", t_str)
     if not m:
@@ -55,8 +61,6 @@ def fields_add_business_hour_fields(obj,
     kwargs['initial_duration'] = kwargs.get('initial_duration', '1w')
     fields_add_time_selection(obj, **kwargs)
 
-    TIMES = ['%d:00am' % h for h in range(1, 13)]
-    TIMES.extend(['%d:00pm' % h for h in range(1, 13)])
 
     business_hours_start = TableField(keyword='business_hours_start',
                                       label='Start Business',
@@ -233,9 +237,17 @@ class BusinessHoursQuery(AnalysisQuery):
         # Run all the Jobs
         batch.run()
 
+        # collect all key names
+        keynames = []
+        istime = False
+        for key in basetable.get_columns(iskey=True):
+            keynames.append(key.name)
+            if key.istime():
+                istime = True
+
         # Now collect the data
         total_secs = 0
-        df = None
+        dfs = []
         idx = 0
         for job in batch.jobs:
             if job.status == Job.ERROR:
@@ -252,29 +264,28 @@ class BusinessHoursQuery(AnalysisQuery):
             logger.debug("%s: actual_criteria %s" % (job, job.actual_criteria))
             t0 = job.actual_criteria.starttime
             t1 = job.actual_criteria.endtime
-            subdf['__secs__'] = timedelta_total_seconds(t1 - t0)
+            if not istime:
+                subdf['__secs__'] = timedelta_total_seconds(t1 - t0)
             total_secs += timedelta_total_seconds(t1 - t0)
             idx += 1
-            if df is None:
-                df = subdf
-            else:
-                df = df.append(subdf)
+            dfs.append(subdf)
 
-        if df is None:
+        if len(dfs) == 0:
             self.data = None
             return True
 
-        keynames = [key.name for key in basetable.get_columns(iskey=True)]
-        if 'aggregate' in self.table.options:
-            ops = self.table.options['aggregate']
-            for col in basetable.get_columns(iskey=False):
-                if col.name not in ops:
-                    ops[col.name] = 'sum'
+        df = pandas.concat(dfs, ignore_index=True)
+        if not istime:
+            if 'aggregate' in self.table.options:
+                ops = self.table.options['aggregate']
+                for col in basetable.get_columns(iskey=False):
+                    if col.name not in ops:
+                        ops[col.name] = 'sum'
 
-        else:
-            ops = 'sum'
+            else:
+                ops = 'sum'
 
-        df = avg_groupby_aggregate(df, keynames, ops, '__secs__', total_secs)
+            df = avg_groupby_aggregate(df, keynames, ops, '__secs__', total_secs)
 
         self.data = df
         return True
