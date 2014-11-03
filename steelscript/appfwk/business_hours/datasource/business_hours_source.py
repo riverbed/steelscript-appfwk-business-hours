@@ -202,7 +202,12 @@ class BusinessHoursTable(AnalysisTable):
 
     def post_process_table(self, field_options):
         super(BusinessHoursTable, self).post_process_table(field_options)
+
         self.copy_columns(self.options['related_tables']['basetable'])
+        for col in self.get_columns(synthetic=True):
+            col.synthetic = False
+            col.compute_expression = ''
+            col.save()
 
 
 class BusinessHoursQuery(AnalysisQuery):
