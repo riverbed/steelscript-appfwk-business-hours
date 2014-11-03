@@ -215,6 +215,9 @@ class BusinessHoursQuery(AnalysisQuery):
     def post_run(self):
         criteria = self.job.criteria
 
+        tzname = criteria.business_hours_tzname
+        tz = pytz.timezone(tzname)
+
         times = self.tables['times']
 
         if times is None or len(times) == 0:
@@ -228,8 +231,8 @@ class BusinessHoursQuery(AnalysisQuery):
         for i, row in times.iterrows():
             (t0, t1) = (row['starttime'], row['endtime'])
             sub_criteria = copy.copy(criteria)
-            sub_criteria.starttime = t0
-            sub_criteria.endtime = t1
+            sub_criteria.starttime = t0.astimezone(tz)
+            sub_criteria.endtime = t1.astimezone(tz)
 
             job = Job.create(table=basetable, criteria=sub_criteria)
             logger.debug("Created %s: %s - %s" % (job, t0, t1))
