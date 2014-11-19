@@ -61,7 +61,6 @@ def fields_add_business_hour_fields(obj,
     kwargs['initial_duration'] = kwargs.get('initial_duration', '1w')
     fields_add_time_selection(obj, **kwargs)
 
-
     business_hours_start = TableField(keyword='business_hours_start',
                                       label='Start Business',
                                       initial=initial_business_hours_start,
@@ -179,10 +178,19 @@ class BusinessHoursTimesQuery(AnalysisQuery):
         if len(times) == 0:
             self.data = None
         else:
-            self.data = pandas.DataFrame(times,
-                                         columns=['starttime', 'endtime', 'totalsecs'])
+            # manually assign datatypes to avoid Python 2.6 issues
+            # when converting datetimes
+            columns = ['starttime', 'endtime', 'totalsecs']
+            s1 = pandas.Series([x[0] for x in times], dtype='datetime64[ns]')
+            s2 = pandas.Series([x[1] for x in times], dtype='datetime64[ns]')
+            tt = pandas.Series([x[2] for x in times], dtype='int')
+
+            # create dataframe then assign using correct column ordering
+            df = pandas.DataFrame(dict(zip(columns, [s1, s2, tt])))
+            self.data = df[columns]
 
         return True
+
 
 class BusinessHoursTable(AnalysisTable):
 
