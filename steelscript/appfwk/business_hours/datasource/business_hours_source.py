@@ -4,20 +4,19 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
-import logging
-import datetime
 import re
 import copy
+import logging
+import datetime
 
-import pandas
 import pytz
+import pandas
 from django import forms
 
 from steelscript.common.timeutils import timedelta_total_seconds
-from steelscript.appfwk.apps.datasource.models import (Job, Table, TableField,
-                                                       BatchJobRunner)
-from steelscript.appfwk.libs.fields import Function
 from steelscript.appfwk.apps.datasource.forms import fields_add_time_selection
+from steelscript.appfwk.apps.datasource.models import \
+    Job, Table, TableField, BatchJobRunner
 from steelscript.appfwk.apps.datasource.modules.analysis import \
     AnalysisException, AnalysisTable, AnalysisQuery
 
@@ -40,7 +39,7 @@ def parse_time(t_str):
     ampm = m.group(3)
     if ampm:
         if ampm.lower()[0] == 'p':
-            hours = hours + 12
+            hours += 12
     return datetime.time(hours, minutes, 0)
 
 
@@ -52,38 +51,41 @@ def replace_time(dt, t):
 
 
 def fields_add_business_hour_fields(obj,
-                                    initial_business_hours_start='8:00am',
-                                    initial_business_hours_end='5:00pm',
-                                    initial_business_hours_tzname='US/Eastern',
-                                    initial_business_hours_weekends=False,
+                                    initial_biz_hours_start='8:00am',
+                                    initial_biz_hours_end='5:00pm',
+                                    initial_biz_hours_tzname='US/Eastern',
+                                    initial_biz_hours_weekends=False,
                                     **kwargs):
 
     kwargs['initial_duration'] = kwargs.get('initial_duration', '1w')
     fields_add_time_selection(obj, **kwargs)
 
+    time_choices = {'choices': zip(TIMES, TIMES)}
     business_hours_start = TableField(keyword='business_hours_start',
                                       label='Start Business',
-                                      initial=initial_business_hours_start,
+                                      initial=initial_biz_hours_start,
                                       field_cls=forms.ChoiceField,
-                                      field_kwargs={'choices': zip(TIMES, TIMES)},
+                                      field_kwargs=time_choices,
                                       required=True)
     business_hours_start.save()
     obj.fields.add(business_hours_start)
 
     business_hours_end = TableField(keyword='business_hours_end',
-                                    label='End Business', initial=initial_business_hours_end,
+                                    label='End Business',
+                                    initial=initial_biz_hours_end,
                                     field_cls=forms.ChoiceField,
-                                    field_kwargs={'choices': zip(TIMES, TIMES)},
+                                    field_kwargs=time_choices,
                                     required=True)
     business_hours_end.save()
     obj.fields.add(business_hours_end)
 
+    tz_choices = {'choices': zip(pytz.common_timezones,
+                                 pytz.common_timezones)}
     business_hours_tzname = TableField(keyword='business_hours_tzname',
                                        label='Business Timezone',
-                                       initial=initial_business_hours_tzname,
+                                       initial=initial_biz_hours_tzname,
                                        field_cls=forms.ChoiceField,
-                                       field_kwargs={'choices': zip(pytz.common_timezones,
-                                                                    pytz.common_timezones)},
+                                       field_kwargs=tz_choices,
                                        required=True)
     business_hours_tzname.save()
     obj.fields.add(business_hours_tzname)
@@ -91,7 +93,7 @@ def fields_add_business_hour_fields(obj,
     business_hours_weekends = TableField(keyword='business_hours_weekends',
                                          field_cls=forms.BooleanField,
                                          label='Business includes weekends',
-                                         initial=initial_business_hours_weekends,
+                                         initial=initial_biz_hours_weekends,
                                          required=False)
     business_hours_weekends.save()
     obj.fields.add(business_hours_weekends)
@@ -103,7 +105,8 @@ def get_timestable(biztable):
 
 class BusinessHoursTimesTable(AnalysisTable):
 
-    class Meta: proxy = True
+    class Meta:
+        proxy = True
 
     _query_class = 'BusinessHoursTimesQuery'
 
@@ -121,7 +124,6 @@ class BusinessHoursTimesQuery(AnalysisQuery):
 
     def post_run(self):
         criteria = self.job.criteria
-        tables = self.tables
 
         tzname = criteria.business_hours_tzname
         logger.debug("%s: timezone: %s" % (self.job, tzname))
@@ -153,33 +155,34 @@ class BusinessHoursTimesQuery(AnalysisQuery):
             if not weekends and t0.weekday() >= 5:
                 continue
 
-            # Now see if we have any overlap of busines hours for today
+            # Now see if we have any overlap of biz hours for today
             if et < t0:
-                # Report end time is today before busines hours start, all done
+                # Report end time is today before biz hours start, all done
                 break
 
             if et < t1:
-                # Report end time is today in the middle of busines hours, adjust
+                # Report end time is today in the middle of biz hours, adjust
                 t1 = et
 
             if t1 < st:
-                # Report start time occurs today *after* business end, nothing today
+                # Report start time occurs today *after* biz end, nothing today
                 continue
 
             if t0 < st:
-                # Report start time occurs today in the middle of the business hours
+                # Report start time occurs today in the middle of the biz hours
                 # Adjust t0
                 t0 = st
 
             logger.debug("%s: start: %s, end: %s, duration: %s" %
-                         (self.job, str(t0), str(t1), str(timedelta_total_seconds(t1-t0))))
+                         (self.job, str(t0), str(t1),
+                          str(timedelta_total_seconds(t1-t0))))
             times.append((t0, t1, timedelta_total_seconds(t1-t0)))
 
         if len(times) == 0:
             self.data = None
         else:
-            # manually assign datatypes to avoid Python 2.6 issues
-            # when converting datetimes
+            # manually assign data types to avoid Python 2.6 issues
+            # when converting date times
             columns = ['starttime', 'endtime', 'totalsecs']
             s1 = pandas.Series([x[0] for x in times], dtype='datetime64[ns]')
             s2 = pandas.Series([x[1] for x in times], dtype='datetime64[ns]')
@@ -194,11 +197,12 @@ class BusinessHoursTimesQuery(AnalysisQuery):
 
 class BusinessHoursTable(AnalysisTable):
 
-    class Meta: proxy = True
+    class Meta:
+        proxy = True
 
     _query_class = 'BusinessHoursQuery'
 
-    TABLE_OPTIONS = {'aggregate' : None }
+    TABLE_OPTIONS = {'aggregate': None}
 
     @classmethod
     def create(cls, name, basetable, aggregate, **kwargs):
@@ -232,7 +236,9 @@ class BusinessHoursQuery(AnalysisQuery):
             self.data = None
             return True
 
-        basetable = Table.from_ref(self.table.options.related_tables['basetable'])
+        basetable = Table.from_ref(
+            self.table.options.related_tables['basetable']
+        )
 
         # Create all the jobs
         batch = BatchJobRunner(self)
@@ -301,7 +307,8 @@ class BusinessHoursQuery(AnalysisQuery):
             else:
                 ops = 'sum'
 
-            df = avg_groupby_aggregate(df, keynames, ops, '__secs__', total_secs)
+            df = avg_groupby_aggregate(df, keynames, ops,
+                                       '__secs__', total_secs)
 
         self.data = df
         return True
