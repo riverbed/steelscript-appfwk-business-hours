@@ -58,7 +58,7 @@ def fields_add_business_hour_fields(obj,
                                     **kwargs):
 
     kwargs['initial_duration'] = kwargs.get('initial_duration', '1w')
-    fields_add_time_selection(obj, **kwargs)
+    fields_add_time_selection(obj, show_start=True, **kwargs)
 
     time_choices = {'choices': zip(TIMES, TIMES)}
     business_hours_start = TableField(keyword='business_hours_start',

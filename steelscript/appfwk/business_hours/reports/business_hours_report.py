@@ -16,10 +16,10 @@ from steelscript.netprofiler.appfwk.datasources.netprofiler_devices import NetPr
 
 report = Report.create("Business Hour Reporting - NetProfiler Interfaces",
                        position=10,
-                       field_order=['endtime', 'duration', 'netprofiler_filterexpr',
+                       field_order=['starttime', 'endtime', 'netprofiler_filterexpr',
                                     'business_hours_start', 'business_hours_end',
                                     'business_hours_tzname', 'business_hours_weekends'],
-                       hidden_fields=['resolution'])
+                       hidden_fields=['duration', 'resolution'])
 
 report.add_section()
 
