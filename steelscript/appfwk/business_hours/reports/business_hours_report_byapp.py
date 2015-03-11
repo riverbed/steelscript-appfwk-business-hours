@@ -6,13 +6,11 @@
 
 from steelscript.appfwk.apps.report.models import Report
 import steelscript.appfwk.apps.report.modules.yui3 as yui3
-import steelscript.appfwk.libs.profiler_tools as protools
 
 import steelscript.appfwk.business_hours.datasource.business_hours_source as bizhours
 from steelscript.netprofiler.appfwk.datasources import netprofiler
-from steelscript.netprofiler.appfwk.datasources import netprofiler_devices
 
-report = Report.create("Business Hour Reporting - NetProfiler Interfaces",
+report = Report.create("Business Hour Reporting - By Application",
                        position=10,
                        field_order=['starttime',
                                     'endtime',
@@ -29,7 +27,7 @@ report.add_section()
 # Define by-interface table from NetProfiler
 #
 basetable = netprofiler.NetProfilerGroupbyTable.create('bh-basetable',
-                                                       groupby='interface',
+                                                       groupby='application',
                                                        duration=60,
                                                        resolution=3600,
                                                        interface=True)
@@ -37,14 +35,12 @@ basetable = netprofiler.NetProfilerGroupbyTable.create('bh-basetable',
 # Define all of your columns here associated with basetable
 # For each data column (iskey=False), you must specify the aggregation method
 # in the bizhours.create below.
-basetable.add_column('interface_dns', 'Interface', iskey=True,
+basetable.add_column('app_name', 'Application', iskey=True,
                      datatype="string")
-basetable.add_column('interface_alias', 'Ifalias', iskey=True,
-                     datatype="string")
-basetable.add_column('avg_util', '% Utilization', units='pct',
-                     sortdesc=True)
-basetable.add_column('in_avg_util', '% Utilization In', units='pct')
-basetable.add_column('out_avg_util', '% Utilization Out', units='pct')
+basetable.add_column('network_rtt', 'Network RTT', datatype='integer',
+                     units='ms', sortdesc=True)
+basetable.add_column('in_avg_bytes', 'Avg Bytes In', units='B')
+basetable.add_column('out_avg_bytes', 'Avg Bytes Out', units='B')
 
 # The 'aggregate' parameter describes how similar rows on different business
 # days should be combined.  For example:
@@ -65,27 +61,14 @@ basetable.add_column('out_avg_util', '% Utilization Out', units='pct')
 #
 biztable = bizhours.BusinessHoursTable.create('bh-biztable', basetable,
                                               aggregate={
-                                                  'avg_util': 'avg',
-                                                  'in_avg_util': 'avg',
-                                                  'out_avg_util': 'avg'
+                                                  'network_rtt': 'max',
+                                                  'in_avg_bytes': 'avg',
+                                                  'out_avg_bytes': 'avg'
                                               })
 
-# Device Table
-
-devtable = netprofiler_devices.NetProfilerDeviceTable.create('devtable')
-devtable.add_column('ipaddr', 'Device IP', iskey=True,
-                    datatype="string")
-devtable.add_column('name', 'Device Name', datatype="string")
-devtable.add_column('type', 'Flow Type', datatype="string")
-devtable.add_column('version', 'Flow Version', datatype="string")
-
-interfaces = protools.ProfilerMergeIpDeviceTable.create('bh-interfaces',
-                                                        devtable, biztable)
-
-report.add_widget(yui3.TableWidget, interfaces, "Interface", height=600)
-report.add_widget(yui3.BarWidget, interfaces, "Interface Utilization",
-                  height=600, keycols=['interface_name'],
-                  valuecols=['avg_util'])
+report.add_widget(yui3.TableWidget, biztable, "Applications", height=600)
+report.add_widget(yui3.BarWidget, biztable, "Applications RTT", height=600,
+                  keycols=['app_name'], valuecols=['network_rtt'])
 
 report.add_widget(yui3.TableWidget, bizhours.get_timestable(biztable),
                   "Covered times", width=12, height=200)
