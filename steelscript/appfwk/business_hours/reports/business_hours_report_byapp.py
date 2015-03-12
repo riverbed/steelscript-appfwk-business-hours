@@ -26,7 +26,7 @@ report.add_section()
 #
 # Define by-interface table from NetProfiler
 #
-basetable = netprofiler.NetProfilerGroupbyTable.create('bh-basetable',
+basetable = netprofiler.NetProfilerGroupbyTable.create('bh-basetable-byapp',
                                                        groupby='application',
                                                        duration=60,
                                                        resolution=3600,
@@ -59,7 +59,7 @@ basetable.add_column('out_avg_bytes', 'Avg Bytes Out', units='B')
 #   min    - minimum of all values
 #   max    - maximum of all values
 #
-biztable = bizhours.BusinessHoursTable.create('bh-biztable', basetable,
+biztable = bizhours.BusinessHoursTable.create('bh-biztable-byapp', basetable,
                                               aggregate={
                                                   'network_rtt': 'max',
                                                   'in_avg_bytes': 'avg',
