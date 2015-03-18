@@ -248,7 +248,9 @@ class BusinessHoursQuery(AnalysisQuery):
             sub_criteria.starttime = t0.astimezone(tz)
             sub_criteria.endtime = t1.astimezone(tz)
 
-            job = Job.create(table=basetable, criteria=sub_criteria)
+            job = Job.create(table=basetable, criteria=sub_criteria,
+                             update_progress=False)
+
             logger.debug("Created %s: %s - %s" % (job, t0, t1))
             batch.add_job(job)
 
