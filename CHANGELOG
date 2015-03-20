@@ -1,0 +1,86 @@
+CHANGELOG
+=========
+
+[0.9.7.2rc1]
+[0.9.7.2]
+ * Avoid keeping detailed job progress
+
+[0.9.7.1]
+ * Unique table names for byapp report
+
+[0.9.7]
+ * Add Business Hours by App report, plus PEP8 cleanup
+
+[0.9.6]
+ * Update report to use start/end instead of end/duration
+
+[0.9.5]
+ * Python 2.6 compatibility
+
+[0.9.4]
+ * Associate requested timezone with criteria of batch jobs
+ * Strip synthetic status of copied columns
+
+[0.9.3]
+ * Update minimum steelscript version
+ * Fix field order for report
+ * Update to gitpy 0.2.1
+ * Update gitpy to version 0.2.0
+
+[0.9.2]
+ * Fix support for running time-based business hour reports
+
+[0.9.1]
+ * Update setup.py info
+
+[0.9.0]
+ * Add README
+ * Update to new AnalysisTable/AnalysisQuery model
+ * Implement multi-column sorting with sortcols/sortdir
+
+[0.9.0rc2]
+ * Add gitpy_versioning to MANIFEST.in
+
+[0.9.0rc1]
+ * Minor setup.py cleanup
+ * Change position to be a decimal, renumber reports
+ * Update gitpy reference
+ * Update headers, 2014
+ * Update LICENSE
+ * Fix setup.py dependency on appfwk
+ * Remove .core from appfwk namespace
+ * Update setup.py dependencies
+ * Update setup.py packaging
+ * Update gitpy-versioning url reference
+ * Clarify App Framework code by renaming from appfw to appfwk
+ * Additional netprofiler renames
+ * Refactor profiler to netprofiler
+ * Correct package name
+ * Update Plugins to use package versions instead
+ * Refactor rvbd_portal to steelscript.appfw.core
+ * Remove old versioning
+ * Move versioning to gitpy_versioning
+ * Update package references
+
+[0.1.0]
+ * Repackage into steelscript-appfw-business-hours
+ * Update for steelscript.common; extract profiler
+ * Migrate reports to new report api
+ * Change analysis tables/related_tables to namespace/name refs
+ * Apply model-based refactor to remaining datasources
+ * Model-based datasource refactor
+ * Support more options for time selection, including start/end instead of end/duration
+ * Implement new datatype/units model based on enumerations
+ * Changed Function references to reference module/function by name
+ * Fix business hour reporting to store timestable as datetime
+ * Define AnalysisTable.options 'related_tables' to make it easier to track tables
+ * Convert remaining datasources and reports to class-based approach
+ * Refactor datasource modules and reports
+ * Add plugin bootstrap script
+ * Reorganize rvbd-portal-profiler to remove 'src' dir
+ * Reorganize rvbd-portal-business-hours to remove 'src' dir
+ * Migrate profiler-devices to rvbd-portal-profiler plugin
+ * Extract profiler to plugin datasource
+ * Add datasource support to plugins, move profiler_devices to separate plugin
+ * Update import references to rvbd_portal
+ * Add business hours as a plugin
