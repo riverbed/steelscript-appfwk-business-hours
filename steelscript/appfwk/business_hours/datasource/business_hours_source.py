@@ -15,8 +15,8 @@ from django import forms
 
 from steelscript.common.timeutils import timedelta_total_seconds
 from steelscript.appfwk.apps.datasource.forms import fields_add_time_selection
-from steelscript.appfwk.apps.datasource.models import \
-    Job, Table, TableField, BatchJobRunner
+from steelscript.appfwk.apps.datasource.models import Table, TableField
+from steelscript.appfwk.apps.jobs.models import Job, BatchJobRunner
 from steelscript.appfwk.apps.datasource.modules.analysis import \
     AnalysisException, AnalysisTable, AnalysisQuery
 
