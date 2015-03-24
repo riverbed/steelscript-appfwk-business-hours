@@ -43,11 +43,15 @@ def parse_time(t_str):
     return datetime.time(hours, minutes, 0)
 
 
-def replace_time(dt, t):
-    return dt.replace(hour=t.hour,
-                      minute=t.minute,
-                      second=0,
-                      microsecond=0)
+def replace_time(dt, t, tz):
+    # Need to strip off the tzinfo, change the hours/minutes
+    # then re-localize to the requested timezone
+    # This ensures DST is handled properly
+    return tz.localize(dt.replace(hour=t.hour,
+                                  minute=t.minute,
+                                  second=0,
+                                  microsecond=0,
+                                  tzinfo=None))
 
 
 def fields_add_business_hour_fields(obj,
@@ -145,11 +149,13 @@ class BusinessHoursTimesQuery(AnalysisQuery):
         t = st
         while t <= et:
             # Set t0/t1 to date of t but time of sb/eb
-            t0 = replace_time(t, sb)
-            t1 = replace_time(t, eb)
+            t0 = replace_time(t, sb, tz)
+            t1 = replace_time(t, eb, tz)
 
             # Advance t by 1 day
             t = t + datetime.timedelta(days=1)
+            # Strip timezone, then re-add to account for DST
+            t = tz.localize(t.replace(tzinfo=None))
 
             # Skip weekends
             if not weekends and t0.weekday() >= 5:
