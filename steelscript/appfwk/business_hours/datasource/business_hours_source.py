@@ -15,7 +15,8 @@ from django import forms
 
 from steelscript.common.timeutils import timedelta_total_seconds
 from steelscript.appfwk.apps.datasource.forms import fields_add_time_selection
-from steelscript.appfwk.apps.datasource.models import Table, TableField
+from steelscript.appfwk.apps.datasource.models import \
+    DatasourceTable, DatasourceQuery, Table, TableField
 from steelscript.appfwk.apps.jobs.models import \
     Job, QueryContinue, QueryComplete
 from steelscript.appfwk.apps.datasource.modules.analysis import \
@@ -108,7 +109,7 @@ def get_timestable(biztable):
     return Table.from_ref(biztable.options.tables['times'])
 
 
-class BusinessHoursTimesTable(AnalysisTable):
+class BusinessHoursTimesTable(DatasourceTable):
 
     class Meta:
         proxy = True
@@ -125,9 +126,9 @@ class BusinessHoursTimesTable(AnalysisTable):
         fields_add_business_hour_fields(self)
 
 
-class BusinessHoursTimesQuery(AnalysisQuery):
+class BusinessHoursTimesQuery(DatasourceQuery):
 
-    def analyze(self, jobs):
+    def run(self):
         criteria = self.job.criteria
 
         tzname = criteria.business_hours_tzname
