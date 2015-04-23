@@ -21,8 +21,6 @@ from steelscript.appfwk.apps.jobs import \
     Job, QueryContinue, QueryComplete
 from steelscript.appfwk.apps.datasource.modules.analysis import \
     AnalysisException, AnalysisTable, AnalysisQuery
-from steelscript.appfwk.apps.jobs import \
-
 
 
 logger = logging.getLogger(__name__)
