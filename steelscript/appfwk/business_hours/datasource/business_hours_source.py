@@ -17,10 +17,12 @@ from steelscript.common.timeutils import timedelta_total_seconds
 from steelscript.appfwk.apps.datasource.forms import fields_add_time_selection
 from steelscript.appfwk.apps.datasource.models import \
     DatasourceTable, DatasourceQuery, Table, TableField
-from steelscript.appfwk.apps.jobs.models import \
+from steelscript.appfwk.apps.jobs import \
     Job, QueryContinue, QueryComplete
 from steelscript.appfwk.apps.datasource.modules.analysis import \
     AnalysisException, AnalysisTable, AnalysisQuery
+from steelscript.appfwk.apps.jobs import \
+
 
 
 logger = logging.getLogger(__name__)
