@@ -257,7 +257,7 @@ class BusinessHoursQuery(AnalysisQuery):
             sub_criteria.endtime = t1.astimezone(tz)
 
             job = Job.create(table=basetable, criteria=sub_criteria,
-                             update_progress=False)
+                             update_progress=False, parent=self.job)
 
             logger.debug("Created %s: %s - %s" % (job, t0, t1))
             depjobs[job.id] = job
