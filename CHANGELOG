@@ -1,7 +1,9 @@
 CHANGELOG
 =========
 
-[0.9.7.2rc1]
+[1.0]
+ * Updates for compatibility with new Job model
+
 [0.9.7.2]
  * Avoid keeping detailed job progress
 

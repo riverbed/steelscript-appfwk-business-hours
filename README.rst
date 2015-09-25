@@ -3,7 +3,7 @@ Riverbed SteelScript Application Framework - Business Hours Plugin
 
 The SteelScript Application Framework makes it easy to create a fully
 custom web application that mashes up data from multiple sources.  This
-package provides addictinal functionality to support business-hour
+package provides additional functionality to support business-hour
 reporting within the App Framework.
 
 For a complete guide to installation, see:
