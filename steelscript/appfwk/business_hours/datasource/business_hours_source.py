@@ -1,4 +1,4 @@
-# Copyright (c) 2014 Riverbed Technology, Inc.
+# Copyright (c) 2015 Riverbed Technology, Inc.
 #
 # This software is licensed under the terms and conditions of the MIT License
 # accompanying the software ("License").  This software is distributed "AS IS"
@@ -16,7 +16,9 @@ from django import forms
 from steelscript.common.timeutils import timedelta_total_seconds
 from steelscript.appfwk.apps.datasource.forms import fields_add_time_selection
 from steelscript.appfwk.apps.datasource.models import \
-    Job, Table, TableField, BatchJobRunner
+    DatasourceTable, DatasourceQuery, Table, TableField
+from steelscript.appfwk.apps.jobs import \
+    Job, QueryContinue, QueryComplete
 from steelscript.appfwk.apps.datasource.modules.analysis import \
     AnalysisException, AnalysisTable, AnalysisQuery
 
@@ -107,7 +109,7 @@ def get_timestable(biztable):
     return Table.from_ref(biztable.options.tables['times'])
 
 
-class BusinessHoursTimesTable(AnalysisTable):
+class BusinessHoursTimesTable(DatasourceTable):
 
     class Meta:
         proxy = True
@@ -124,9 +126,9 @@ class BusinessHoursTimesTable(AnalysisTable):
         fields_add_business_hour_fields(self)
 
 
-class BusinessHoursTimesQuery(AnalysisQuery):
+class BusinessHoursTimesQuery(DatasourceQuery):
 
-    def post_run(self):
+    def run(self):
         criteria = self.job.criteria
 
         tzname = criteria.business_hours_tzname
@@ -185,7 +187,7 @@ class BusinessHoursTimesQuery(AnalysisQuery):
             times.append((t0, t1, timedelta_total_seconds(t1-t0)))
 
         if len(times) == 0:
-            self.data = None
+            data = None
         else:
             # manually assign data types to avoid Python 2.6 issues
             # when converting date times
@@ -196,9 +198,9 @@ class BusinessHoursTimesQuery(AnalysisQuery):
 
             # create dataframe then assign using correct column ordering
             df = pandas.DataFrame(dict(zip(columns, [s1, s2, tt])))
-            self.data = df[columns]
+            data = df[columns]
 
-        return True
+        return QueryComplete(data)
 
 
 class BusinessHoursTable(AnalysisTable):
@@ -230,24 +232,24 @@ class BusinessHoursTable(AnalysisTable):
 
 class BusinessHoursQuery(AnalysisQuery):
 
-    def post_run(self):
+    def analyze(self, jobs):
         criteria = self.job.criteria
 
         tzname = criteria.business_hours_tzname
         tz = pytz.timezone(tzname)
 
-        times = self.tables['times']
+        times = jobs['times'].data()
 
         if times is None or len(times) == 0:
-            self.data = None
-            return True
+            return QueryComplete(None)
 
         basetable = Table.from_ref(
             self.table.options.related_tables['basetable']
         )
 
         # Create all the jobs
-        batch = BatchJobRunner(self)
+        depjobs = {}
+
         for i, row in times.iterrows():
             (t0, t1) = (row['starttime'], row['endtime'])
             sub_criteria = copy.copy(criteria)
@@ -255,17 +257,18 @@ class BusinessHoursQuery(AnalysisQuery):
             sub_criteria.endtime = t1.astimezone(tz)
 
             job = Job.create(table=basetable, criteria=sub_criteria,
-                             update_progress=False)
+                             update_progress=False, parent=self.job)
 
             logger.debug("Created %s: %s - %s" % (job, t0, t1))
-            batch.add_job(job)
+            depjobs[job.id] = job
 
-        if len(batch.jobs) == 0:
-            self.data = None
-            return True
+        return QueryContinue(self.collect, depjobs)
 
-        # Run all the Jobs
-        batch.run()
+    def collect(self, jobs=None):
+        logger.debug("%s: bizhours.collect: %s" % (self, jobs))
+        basetable = Table.from_ref(
+            self.table.options.related_tables['basetable']
+        )
 
         # collect all key names
         keynames = []
@@ -279,7 +282,7 @@ class BusinessHoursQuery(AnalysisQuery):
         total_secs = 0
         dfs = []
         idx = 0
-        for job in batch.jobs:
+        for jid, job in jobs.iteritems():
             if job.status == Job.ERROR:
                 raise AnalysisException("%s for %s-%s failed: %s" %
                                         (job, job.criteria.starttime,
@@ -301,8 +304,7 @@ class BusinessHoursQuery(AnalysisQuery):
             dfs.append(subdf)
 
         if len(dfs) == 0:
-            self.data = None
-            return True
+            return QueryComplete(None)
 
         df = pandas.concat(dfs, ignore_index=True)
         if not istime:
@@ -318,8 +320,7 @@ class BusinessHoursQuery(AnalysisQuery):
             df = avg_groupby_aggregate(df, keynames, ops,
                                        '__secs__', total_secs)
 
-        self.data = df
-        return True
+        return QueryComplete(df)
 
 
 def avg_groupby_aggregate(df, keys, ops, t_col, total_t):

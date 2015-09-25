@@ -1,6 +1,9 @@
 CHANGELOG
 =========
 
+[1.0]
+ * Updates for compatibility with new Job model
+
 [0.9.7.3]
  * Add support for DST changes
 
