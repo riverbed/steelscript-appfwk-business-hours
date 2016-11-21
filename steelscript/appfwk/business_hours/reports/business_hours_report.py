@@ -4,11 +4,13 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
+import steelscript.appfwk.apps.report.modules.c3 as c3
 from steelscript.appfwk.apps.report.models import Report
-import steelscript.appfwk.apps.report.modules.yui3 as yui3
+import steelscript.appfwk.apps.report.modules.tables as tables
 import steelscript.appfwk.libs.profiler_tools as protools
 
-import steelscript.appfwk.business_hours.datasource.business_hours_source as bizhours
+import steelscript.appfwk.business_hours.datasource.business_hours_source as \
+    bizhours
 from steelscript.netprofiler.appfwk.datasources import netprofiler
 from steelscript.netprofiler.appfwk.datasources import netprofiler_devices
 
@@ -82,10 +84,10 @@ devtable.add_column('version', 'Flow Version', datatype="string")
 interfaces = protools.ProfilerMergeIpDeviceTable.create('bh-interfaces',
                                                         devtable, biztable)
 
-report.add_widget(yui3.TableWidget, interfaces, "Interface", height=600)
-report.add_widget(yui3.BarWidget, interfaces, "Interface Utilization",
+report.add_widget(tables.TableWidget, interfaces, "Interface", height=600)
+report.add_widget(c3.BarWidget, interfaces, "Interface Utilization",
                   height=600, keycols=['interface_name'],
                   valuecols=['avg_util'])
 
-report.add_widget(yui3.TableWidget, bizhours.get_timestable(biztable),
+report.add_widget(tables.TableWidget, bizhours.get_timestable(biztable),
                   "Covered times", width=12, height=200)
