@@ -4,10 +4,12 @@
 # accompanying the software ("License").  This software is distributed "AS IS"
 # as set forth in the License.
 
+import steelscript.appfwk.apps.report.modules.c3 as c3
 from steelscript.appfwk.apps.report.models import Report
-import steelscript.appfwk.apps.report.modules.yui3 as yui3
+import steelscript.appfwk.apps.report.modules.tables as tables
 
-import steelscript.appfwk.business_hours.datasource.business_hours_source as bizhours
+import steelscript.appfwk.business_hours.datasource.business_hours_source as \
+    bizhours
 from steelscript.netprofiler.appfwk.datasources import netprofiler
 
 report = Report.create("Business Hour Reporting - By Application",
@@ -66,9 +68,9 @@ biztable = bizhours.BusinessHoursTable.create('bh-biztable-byapp', basetable,
                                                   'out_avg_bytes': 'avg'
                                               })
 
-report.add_widget(yui3.TableWidget, biztable, "Applications", height=600)
-report.add_widget(yui3.BarWidget, biztable, "Applications RTT", height=600,
+report.add_widget(tables.TableWidget, biztable, "Applications", height=600)
+report.add_widget(c3.BarWidget, biztable, "Applications RTT", height=600,
                   keycols=['app_name'], valuecols=['network_rtt'])
 
-report.add_widget(yui3.TableWidget, bizhours.get_timestable(biztable),
+report.add_widget(tables.TableWidget, bizhours.get_timestable(biztable),
                   "Covered times", width=12, height=200)
