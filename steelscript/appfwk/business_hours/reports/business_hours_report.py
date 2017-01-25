@@ -5,12 +5,11 @@
 # as set forth in the License.
 
 import steelscript.appfwk.apps.report.modules.c3 as c3
-from steelscript.appfwk.apps.report.models import Report
 import steelscript.appfwk.apps.report.modules.tables as tables
-import steelscript.appfwk.libs.profiler_tools as protools
-
 import steelscript.appfwk.business_hours.datasource.business_hours_source as \
     bizhours
+import steelscript.netprofiler.appfwk.libs.profiler_tools as protools
+from steelscript.appfwk.apps.report.models import Report
 from steelscript.netprofiler.appfwk.datasources import netprofiler
 from steelscript.netprofiler.appfwk.datasources import netprofiler_devices
 
